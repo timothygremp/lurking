@@ -1,0 +1,103 @@
+Last login: Fri Feb 14 01:00:34 on ttys000
+alarycepatterson@Alaryces-Air ~ % cd documents/carbonai
+alarycepatterson@Alaryces-Air carbonai % vi .gitignore
+alarycepatterson@Alaryces-Air carbonai % ls
+CarbonAi		CarbonAi.xcodeproj
+alarycepatterson@Alaryces-Air carbonai % cd carbonai
+alarycepatterson@Alaryces-Air carbonai % vi .gitignore
+alarycepatterson@Alaryces-Air carbonai % ls -la
+total 0
+drwxr-xr-x@ 18 alarycepatterson  staff    576 Feb 14 01:02 .
+drwxr-xr-x   7 alarycepatterson  staff    224 Feb 14 01:02 ..
+-rw-r--r--@  1 alarycepatterson  staff   4547 Feb  3 17:23 ActionMenuView.swift
+-rw-r--r--@  1 alarycepatterson  staff    363 Feb 10 23:27 AnalysisResponse.swift
+drwxr-xr-x@  5 alarycepatterson  staff    160 Jan 27 22:54 Assets.xcassets
+-rw-r--r--@  1 alarycepatterson  staff   6123 Feb  6 01:31 CameraManager.swift
+-rw-r--r--   1 alarycepatterson  staff    551 Feb  3 00:02 CameraPreviewView.swift
+-rw-r--r--@  1 alarycepatterson  staff  14656 Feb  7 02:41 CameraView.swift
+-rw-r--r--@  1 alarycepatterson  staff    231 Jan 27 22:53 CarbonAiApp.swift
+-rw-r--r--@  1 alarycepatterson  staff   3875 Feb  2 23:30 ContentView.swift
+-rw-r--r--@  1 alarycepatterson  staff   5324 Feb 10 23:40 FoodDataset.swift
+-rw-r--r--@  1 alarycepatterson  staff   7887 Feb 10 23:40 ImageAnalysisService.swift
+-rw-r--r--   1 alarycepatterson  staff   1663 Feb  3 16:41 ImagePicker.swift
+-rw-r--r--@  1 alarycepatterson  staff    553 Feb  3 16:41 Info.plist
+-rw-r--r--   1 alarycepatterson  staff    443 Feb  6 00:03 LoadingScoreView.swift
+drwxr-xr-x   3 alarycepatterson  staff     96 Jan 27 22:54 Preview Content
+-rw-r--r--@  1 alarycepatterson  staff  20526 Feb 11 17:24 ScoreView.swift
+-rw-r--r--@  1 alarycepatterson  staff  24507 Feb  5 23:27 commodity_5_totals_kg.csv
+alarycepatterson@Alaryces-Air carbonai % cd ../
+alarycepatterson@Alaryces-Air carbonai % ls -la
+total 24
+drwxr-xr-x   7 alarycepatterson  staff   224 Feb 14 01:02 .
+drwx------@ 12 alarycepatterson  staff   384 Feb 14 01:01 ..
+-rw-r--r--@  1 alarycepatterson  staff  6148 Feb 11 15:07 .DS_Store
+drwxr-xr-x  14 alarycepatterson  staff   448 Feb 11 17:55 .git
+-rw-r--r--   1 alarycepatterson  staff  1061 Jan 28 00:13 .gitignore
+drwxr-xr-x@ 18 alarycepatterson  staff   576 Feb 14 01:02 CarbonAi
+drwxr-xr-x@  5 alarycepatterson  staff   160 Feb  6 00:38 CarbonAi.xcodeproj
+alarycepatterson@Alaryces-Air carbonai % vi .gitignore
+
+# CocoaPods
+#
+Pods/
+*.xcworkspace
+
+# Carthage
+#
+Carthage/Build/
+
+# fastlane
+#
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+#
+iOSInjectionProject/
+
+# OS X temporary files
+#
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Swift Package Manager
+#
+.swiftpm/
+
+# Xcode Patch
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
