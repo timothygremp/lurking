@@ -63,6 +63,7 @@ struct ContentView: View {
                         .rotationEffect(.degrees(180))
                     }
                     .modifier(SwayingModifier())  // Add swaying animation
+                    .modifier(DroppingModifier())  // Add dropping animation
                 }
             }
             .ignoresSafeArea()
@@ -227,6 +228,31 @@ struct BreathingModifier: ViewModifier {
             )
             .onAppear {
                 isBreathing = true
+            }
+    }
+}
+
+// Add this new modifier for the dropping effect
+struct DroppingModifier: ViewModifier {
+    @State private var hasDropped = false
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(y: hasDropped ? 0 : -1000)  // Start from way above
+            .opacity(hasDropped ? 1 : 0)  // Fade in as it drops
+            .animation(
+                Animation.spring(
+                    response: 0.6,
+                    dampingFraction: 0.6,
+                    blendDuration: 0
+                ),
+                value: hasDropped
+            )
+            .onAppear {
+                // Small delay before dropping
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    hasDropped = true
+                }
             }
     }
 }
