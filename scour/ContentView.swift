@@ -40,7 +40,7 @@ struct ContentView: View {
                                 .frame(width: 65, height: 55)
                                 .overlay(
                                     Capsule()
-                                        .strokeBorder(Color.white, lineWidth: 1.25)  // Reduced from 2.5
+                                        .strokeBorder(Color.white, lineWidth: 1.25)
                                 )
                             
                             Text("🐺")
@@ -54,13 +54,14 @@ struct ContentView: View {
                                 .font(.system(size: 18))
                                 .foregroundColor(.red)
                             
-                            Image(systemName: "triangle")  // Stroke effect
+                            Image(systemName: "triangle")
                                 .font(.system(size: 18))
                                 .foregroundColor(.white)
                         }
-                        .offset(y: -5)  // Reduced from -10 to halve the spacing
+                        .offset(y: -5)
                         .rotationEffect(.degrees(180))
                     }
+                    .modifier(SwayingModifier())  // Add swaying animation
                 }
             }
             .ignoresSafeArea()
@@ -189,5 +190,23 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+// Add this struct for the swaying animation
+struct SwayingModifier: ViewModifier {
+    @State private var isSwaying = false
+    
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(.degrees(isSwaying ? 2 : -2), anchor: .bottom)
+            .animation(
+                Animation.easeInOut(duration: 2)
+                    .repeatForever(autoreverses: true),
+                value: isSwaying
+            )
+            .onAppear {
+                isSwaying = true
+            }
     }
 }
