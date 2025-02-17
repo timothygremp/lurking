@@ -56,6 +56,7 @@ struct ContentView: View {
                         // You marker at fixed position
                         YouMarker()
                             .offset(y: -10)
+                            .zIndex(1)  // Make You marker appear on top
                     } else {
                         // Offender markers
                         VStack(spacing: 0) {
@@ -94,6 +95,7 @@ struct ContentView: View {
                             selectedOffender = item
                             showingOffenderDetail = true
                         }
+                        .zIndex(0)  // Keep offender markers behind
                     }
                 }
             }
