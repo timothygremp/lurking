@@ -63,7 +63,7 @@ struct ContentView: View {
                         .rotationEffect(.degrees(180))
                     }
                     .modifier(SwayingModifier())  // Add swaying animation
-                    .modifier(DroppingModifier())  // Add dropping animation
+                    .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == offender.id }) ?? 0))
                 }
             }
             .ignoresSafeArea()
@@ -232,14 +232,15 @@ struct BreathingModifier: ViewModifier {
     }
 }
 
-// Add this new modifier for the dropping effect
+// Modify DroppingModifier to use the index
 struct DroppingModifier: ViewModifier {
     @State private var hasDropped = false
+    let index: Int
     
     func body(content: Content) -> some View {
         content
-            .offset(y: hasDropped ? 0 : -1000)  // Start from way above
-            .opacity(hasDropped ? 1 : 0)  // Fade in as it drops
+            .offset(y: hasDropped ? 0 : -1000)
+            .opacity(hasDropped ? 1 : 0)
             .animation(
                 Animation.spring(
                     response: 0.6,
@@ -249,8 +250,8 @@ struct DroppingModifier: ViewModifier {
                 value: hasDropped
             )
             .onAppear {
-                // Small delay before dropping
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                // Delay based on index (0.3s initial + 0.2s per marker)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(index) * 0.2) {
                     hasDropped = true
                 }
             }
