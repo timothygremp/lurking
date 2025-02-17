@@ -20,9 +20,13 @@ struct ContentView: View {
     
     // Sample offender data for demonstration
     @State private var offenders = [
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6160, longitude: -116.2043)),
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6140, longitude: -116.2013)),
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6130, longitude: -116.2033))
+        // Two offenders above "You" (at different distances)
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6190, longitude: -116.2003)),  // Northeast, further out
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6175, longitude: -116.2053)),  // Northwest, closer
+        
+        // Two offenders below "You" (at different distances)
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6120, longitude: -116.1993)),  // Southeast, further out
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6135, longitude: -116.2043)),  // Southwest, closer
     ]
     
     var body: some View {
@@ -66,6 +70,12 @@ struct ContentView: View {
                     .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == offender.id }) ?? 0))
                 }
             }
+            .overlay(
+                // Center "You" marker
+                YouMarker()
+                    .offset(y: -10)  // Adjust position if needed
+                , alignment: .center
+            )
             .ignoresSafeArea()
             
             // Top overlays
@@ -255,5 +265,40 @@ struct DroppingModifier: ViewModifier {
                     hasDropped = true
                 }
             }
+    }
+}
+
+// Add this new view for the "You" pill
+struct YouMarker: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("You")
+                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .medium))
+                .modifier(BreathingModifier())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color(hex: "282928"))
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color.white, lineWidth: 1)
+                        )
+                )
+            
+            // Triangle pointer with stroke
+            ZStack {
+                Image(systemName: "triangle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "282928"))
+                
+                Image(systemName: "triangle")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
+            }
+            .offset(y: -5)
+            .rotationEffect(.degrees(180))
+        }
     }
 }
