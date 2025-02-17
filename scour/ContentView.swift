@@ -12,6 +12,7 @@ import CoreLocation
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var searchText = ""
+    @State private var showingSearchSheet = false
     @State private var selectedDistance: String = ".5 mi"  // Default selected distance
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023), // Boise coordinates
@@ -165,12 +166,16 @@ struct ContentView: View {
                         .font(.system(size: 24))
                         .foregroundColor(Color(hex: "A4A4AB"))
                         .accentColor(Color(hex: "A4A4AB"))
+                        .disabled(true)  // Disable direct text input
                 }
                 .padding(.vertical, 15)
                 .padding(.horizontal)
                 .background(Color(hex: "282928"))
                 .cornerRadius(200)
                 .padding(.horizontal)
+                .onTapGesture {
+                    showingSearchSheet = true
+                }  // Move the tap gesture here
             }
             .padding(.bottom, 30)
             
@@ -292,6 +297,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingSearchSheet) {
+            SearchSheetView(searchText: $searchText, isPresented: $showingSearchSheet)
+        }
     }
 }
 
