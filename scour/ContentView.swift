@@ -46,6 +46,7 @@ struct ContentView: View {
                             Text("🐺")
                                 .font(.system(size: 40))
                                 .offset(y: -1)
+                                .modifier(BreathingModifier())  // Add breathing animation
                         }
                         
                         // Triangle pointer with stroke
@@ -73,6 +74,7 @@ struct ContentView: View {
                     HStack {
                         Text("🐺")
                             .font(.system(size: 30))
+                            .modifier(BreathingModifier())  // Add breathing animation
                         Text("Scour")
                             .foregroundColor(.white)
                             .font(.system(size: 28, weight: .medium))
@@ -199,14 +201,32 @@ struct SwayingModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .rotationEffect(.degrees(isSwaying ? 2 : -2), anchor: .bottom)
+            .rotationEffect(.degrees(isSwaying ? 6 : -6), anchor: .bottom)
             .animation(
-                Animation.easeInOut(duration: 2)
+                Animation.easeInOut(duration: 1.5)
                     .repeatForever(autoreverses: true),
                 value: isSwaying
             )
             .onAppear {
                 isSwaying = true
+            }
+    }
+}
+
+// Add this new modifier for the breathing/pulsing effect
+struct BreathingModifier: ViewModifier {
+    @State private var isBreathing = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isBreathing ? 1.1 : 0.9)
+            .animation(
+                Animation.easeInOut(duration: 1.0)
+                    .repeatForever(autoreverses: true),
+                value: isBreathing
+            )
+            .onAppear {
+                isBreathing = true
             }
     }
 }
