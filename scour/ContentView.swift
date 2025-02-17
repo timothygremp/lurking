@@ -44,6 +44,45 @@ struct ContentView: View {
             }
             .ignoresSafeArea()
             
+            // Top overlays
+            VStack {
+                HStack {
+                    // Scour pill
+                    HStack {
+                        Text("🐺")
+                            .font(.system(size: 30))
+                        Text("Scour")
+                            .foregroundColor(.white)
+                            .font(.system(size: 28, weight: .medium))
+                    }
+                    .frame(height: 52)
+                    .padding(.horizontal, 18)
+                    .background(Color(hex: "282928"))
+                    .cornerRadius(200)
+                    
+                    Spacer()
+                    
+                    // Location pill
+                    HStack {
+                        Image(systemName: "location.north.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 26))
+                            .rotationEffect(.degrees(45))
+                            .padding(.leading, 4)  // Add a little padding to move icon right
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .frame(height: 52)
+                    .frame(width: 34)  // Set a wider width for pill shape
+                    .padding(.horizontal, 20)
+                    .background(Color(hex: "282928"))
+                    .cornerRadius(200)
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
+                Spacer()
+            }
+            
             // Bottom UI Stack
             VStack(spacing: 10) {
                 // Distance markers
