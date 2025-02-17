@@ -29,6 +29,14 @@ struct ContentView: View {
         Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6135, longitude: -116.2043)),  // Southwest, closer
     ]
     
+    // Add these state variables inside ContentView
+    @State private var showingOffenderDetail = false
+    @State private var selectedOffender: Offender?
+    
+    // Add this gesture state
+    @GestureState private var dragOffset = CGSize.zero
+    @State private var dismissOffset = CGSize.zero
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map View
@@ -68,6 +76,10 @@ struct ContentView: View {
                     }
                     .modifier(SwayingModifier())  // Add swaying animation
                     .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == offender.id }) ?? 0))
+                    .onTapGesture {
+                        selectedOffender = offender
+                        showingOffenderDetail = true
+                    }
                 }
             }
             .overlay(
@@ -150,6 +162,123 @@ struct ContentView: View {
                 .padding(.horizontal)
             }
             .padding(.bottom, 30)
+            
+            // Sheet presentation
+            if showingOffenderDetail {
+                // Dark overlay
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showingOffenderDetail = false
+                    }
+                    .transition(.opacity)
+                    .animation(
+                        .easeInOut(duration: 0.5),  // Increased from 0.3 for smoother fade
+                        value: showingOffenderDetail
+                    )
+                
+                // Offender detail card
+                VStack(alignment: .leading, spacing: 16) {
+                    // Add drag indicator at the top
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.5))
+                        .frame(width: 40, height: 4)
+                        .cornerRadius(2)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 8)
+                    
+                    // Header with wolf and name
+                    HStack {
+                        Text("🐺")
+                            .font(.system(size: 40))
+                            .modifier(BreathingModifier())
+                        
+                        VStack(alignment: .leading) {
+                            Text("Harvey Weinstein")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                            Text("500 ft away from you")
+                                .font(.system(size: 20))
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    // Info grid
+                    HStack(spacing: 40) {
+                        VStack(alignment: .leading) {
+                            Text("Age:")
+                                .foregroundColor(.gray)
+                            Text("55")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Sex:")
+                                .foregroundColor(.gray)
+                            Text("M")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    // Address section
+                    VStack(alignment: .leading) {
+                        Text("Address:")
+                            .foregroundColor(.gray)
+                        Text("1422 N. 5th St.")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(.white)
+                        Text("1422 N. 5th St., Boise, ID 83702")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    // See Photo & Crimes button
+                    Button(action: {
+                        // Action for viewing photos and crimes
+                    }) {
+                        Text("See Photo & Crimes")
+                            .font(.system(size: 22, weight: .bold))  // Bigger, bolder text
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)  // More vertical padding
+                            .background(
+                                Capsule()  // Pill shape
+                                    .fill(Color.red)
+                            )
+                    }
+                    .modifier(ButtonPulseModifier())  // Add pulsing animation
+                }
+                .padding(20)
+                .frame(height: 340)
+                .background(Color(hex: "1C1C1E"))
+                .offset(y: max(0, dragOffset.height + dismissOffset.height))
+                .gesture(
+                    DragGesture()
+                        .updating($dragOffset) { value, state, _ in
+                            state = value.translation
+                        }
+                        .onEnded { value in
+                            let threshold: CGFloat = 100
+                            if value.translation.height > threshold {
+                                showingOffenderDetail = false
+                            } else {
+                                dismissOffset = .zero
+                            }
+                        }
+                )
+                .transition(.move(edge: .bottom))
+                .animation(
+                    .spring(
+                        response: 0.7,
+                        dampingFraction: 0.9,
+                        blendDuration: 0.5
+                    ),
+                    value: showingOffenderDetail
+                )
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -300,5 +429,23 @@ struct YouMarker: View {
             .offset(y: -5)
             .rotationEffect(.degrees(180))
         }
+    }
+}
+
+// Add this new modifier for the button pulse
+struct ButtonPulseModifier: ViewModifier {
+    @State private var isPulsing = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.05 : 1.0)  // Subtle scale change
+            .animation(
+                Animation.easeInOut(duration: 1.2)
+                    .repeatForever(autoreverses: true),
+                value: isPulsing
+            )
+            .onAppear {
+                isPulsing = true
+            }
     }
 }
