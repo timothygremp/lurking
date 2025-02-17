@@ -37,57 +37,66 @@ struct ContentView: View {
     @GestureState private var dragOffset = CGSize.zero
     @State private var dismissOffset = CGSize.zero
     
+    // Add this at the top of ContentView, after other @State variables
+    let youLocation = CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023)  // Boise center
+    
+    // Add this as a static constant at the top of ContentView
+    private let youMarker = [
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023))
+    ]
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map View
             Map(coordinateRegion: $region,
                 showsUserLocation: true,
-                annotationItems: offenders) { offender in
-                MapAnnotation(coordinate: offender.coordinate) {
-                    VStack(spacing: 0) {
-                        // Wolf icon with red background and white stroke
-                        ZStack {
-                            Capsule()
-                                .fill(Color.red)
-                                .frame(width: 65, height: 55)
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(Color.white, lineWidth: 1.25)
-                                )
+                annotationItems: offenders + youMarker) { item in
+                MapAnnotation(coordinate: item.coordinate) {
+                    if item.coordinate.latitude == 43.6150 && item.coordinate.longitude == -116.2023 {
+                        // You marker at fixed position
+                        YouMarker()
+                            .offset(y: -10)
+                    } else {
+                        // Offender markers
+                        VStack(spacing: 0) {
+                            // Wolf icon with red background and white stroke
+                            ZStack {
+                                Capsule()
+                                    .fill(Color.red)
+                                    .frame(width: 65, height: 55)
+                                    .overlay(
+                                        Capsule()
+                                            .strokeBorder(Color.white, lineWidth: 1.25)
+                                    )
+                                
+                                Text("🐺")
+                                    .font(.system(size: 40))
+                                    .offset(y: -1)
+                                    .modifier(BreathingModifier())  // Add breathing animation
+                            }
                             
-                            Text("🐺")
-                                .font(.system(size: 40))
-                                .offset(y: -1)
-                                .modifier(BreathingModifier())  // Add breathing animation
+                            // Triangle pointer with stroke
+                            ZStack {
+                                Image(systemName: "triangle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.red)
+                                
+                                Image(systemName: "triangle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                            }
+                            .offset(y: -5)
+                            .rotationEffect(.degrees(180))
                         }
-                        
-                        // Triangle pointer with stroke
-                        ZStack {
-                            Image(systemName: "triangle.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.red)
-                            
-                            Image(systemName: "triangle")
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
+                        .modifier(SwayingModifier())
+                        .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
+                        .onTapGesture {
+                            selectedOffender = item
+                            showingOffenderDetail = true
                         }
-                        .offset(y: -5)
-                        .rotationEffect(.degrees(180))
-                    }
-                    .modifier(SwayingModifier())  // Add swaying animation
-                    .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == offender.id }) ?? 0))
-                    .onTapGesture {
-                        selectedOffender = offender
-                        showingOffenderDetail = true
                     }
                 }
             }
-            .overlay(
-                // Center "You" marker
-                YouMarker()
-                    .offset(y: -10)  // Adjust position if needed
-                , alignment: .center
-            )
             .ignoresSafeArea()
             
             // Top overlays
