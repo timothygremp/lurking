@@ -32,14 +32,35 @@ struct ContentView: View {
                 showsUserLocation: true,
                 annotationItems: offenders) { offender in
                 MapAnnotation(coordinate: offender.coordinate) {
-                    Image("wolf-marker")
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
+                    VStack(spacing: 0) {
+                        // Wolf icon with red background and white stroke
+                        ZStack {
+                            Capsule()
                                 .fill(Color.red)
-                                .frame(width: 44, height: 44)
-                        )
+                                .frame(width: 65, height: 55)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(Color.white, lineWidth: 1.25)  // Reduced from 2.5
+                                )
+                            
+                            Text("🐺")
+                                .font(.system(size: 40))
+                                .offset(y: -1)
+                        }
+                        
+                        // Triangle pointer with stroke
+                        ZStack {
+                            Image(systemName: "triangle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.red)
+                            
+                            Image(systemName: "triangle")  // Stroke effect
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                        }
+                        .offset(y: -5)  // Reduced from -10 to halve the spacing
+                        .rotationEffect(.degrees(180))
+                    }
                 }
             }
             .ignoresSafeArea()
