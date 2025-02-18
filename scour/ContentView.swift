@@ -160,22 +160,15 @@ struct ContentView: View {
                             .foregroundColor(.white)
                             .font(.system(size: 26))
                             .rotationEffect(.degrees(45))
-                            .padding(.leading, 4)  // Add a little padding to move icon right
+                            .padding(.leading, 4)
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .frame(height: 52)
-                    .frame(width: 34)  // Set a wider width for pill shape
+                    .frame(width: 34)
                     .padding(.horizontal, 20)
                     .background(Color(hex: "282928"))
                     .cornerRadius(200)
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                
-                // Add recenter button near location pill
-                HStack {
-                    Spacer()
-                    Button(action: {
+                    .onTapGesture {
                         if let location = locationManager.location {
                             withAnimation {
                                 region = MKCoordinateRegion(
@@ -186,13 +179,6 @@ struct ContentView: View {
                                 isTrackingLocation = true
                             }
                         }
-                    }) {
-                        Image(systemName: "location.fill")
-                            .foregroundColor(.white)
-                            .font(.system(size: 22))
-                            .frame(width: 44, height: 44)
-                            .background(Color(hex: "282928"))
-                            .clipShape(Circle())
                     }
                 }
                 .padding(.horizontal)
@@ -451,4 +437,81 @@ struct BreathingModifier: ViewModifier {
 
 // Modify DroppingModifier to use the index
 struct DroppingModifier: ViewModifier {
-    @Stat
+    @State private var hasDropped = false
+    let index: Int
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(y: hasDropped ? 0 : -1000)
+            .opacity(hasDropped ? 1 : 0)
+            .animation(
+                Animation.spring(
+                    response: 0.6,
+                    dampingFraction: 0.6,
+                    blendDuration: 0
+                ),
+                value: hasDropped
+            )
+            .onAppear {
+                // Delay based on index (0.3s initial + 0.2s per marker)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(index) * 0.2) {
+                    hasDropped = true
+                }
+            }
+    }
+}
+
+// Add this new view for the "You" pill
+struct YouMarker: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("You")
+                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .medium))
+                .modifier(BreathingModifier())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color(hex: "282928"))
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color.white, lineWidth: 1)
+                        )
+                )
+            
+            // Triangle pointer with stroke
+            ZStack {
+                Image(systemName: "triangle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "282928"))
+                
+                Image(systemName: "triangle")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white)
+            }
+            .offset(y: -5)
+            .rotationEffect(.degrees(180))
+        }
+    }
+}
+
+// Add this new modifier for the button pulse
+struct ButtonPulseModifier: ViewModifier {
+    @State private var isPulsing = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.05 : 1.0)  // Subtle scale change
+            .animation(
+                Animation.easeInOut(duration: 1.2)
+                    .repeatForever(autoreverses: true),
+                value: isPulsing
+            )
+            .onAppear {
+                isPulsing = true
+            }
+    }
+}
+
+
