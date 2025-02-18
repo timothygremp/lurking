@@ -3,10 +3,20 @@ import MapKit
 import Combine
 
 // Update the sample data structure to include a unique ID
-struct RecentSearch: Identifiable {
-    let id = UUID()
+struct RecentSearch: Identifiable, Codable {
+    let id: UUID
     let mainText: String
     let subText: String
+    
+    init(mainText: String, subText: String) {
+        self.id = UUID()
+        self.mainText = mainText
+        self.subText = subText
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, mainText, subText
+    }
 }
 
 // Add new struct for search results
@@ -35,15 +45,14 @@ struct SearchSheetView: View {
     @State private var offset: CGFloat = 0
     @State private var searchResults: [SearchResult] = []
     @StateObject private var searchCompleter = SearchCompleter()
+    @StateObject private var recentSearchManager = RecentSearchManager()
     
     let dismissThreshold: CGFloat = 100
     
     // Updated sample data
-    let recentSearches = [
-        RecentSearch(mainText: "1422 N. 5th St.", subText: "1422 N. 5th St., Boise, ID 83702"),
-        RecentSearch(mainText: "1422 N. 5th St.", subText: "1422 N. 5th St., Boise, ID 83702"),
-        RecentSearch(mainText: "1422 N. 5th St.", subText: "1422 N. 5th St., Boise, ID 83702")
-    ]
+    var recentSearches: [RecentSearch] {
+        recentSearchManager.recentSearches
+    }
     
     // Add this computed property to simplify the view
     private var resultsList: some View {
@@ -69,6 +78,8 @@ struct SearchSheetView: View {
                             subtitle: result.subtitle,
                             coordinate: coordinate
                         )
+                        // Add to recent searches
+                        recentSearchManager.addSearch(title: result.title, subtitle: result.subtitle)
                         isPresented = false
                     }
                 }
