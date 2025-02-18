@@ -14,11 +14,22 @@ struct SearchResult: Identifiable {
     let id = UUID()
     let title: String
     let subtitle: String
+    var location: CLLocationCoordinate2D?
+}
+
+// Add this struct for search locations
+struct SearchLocation: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let coordinate: CLLocationCoordinate2D
 }
 
 struct SearchSheetView: View {
     @Binding var searchText: String
     @Binding var isPresented: Bool
+    @Binding var region: MKCoordinateRegion
+    @Binding var selectedLocation: SearchLocation?
     @FocusState private var isFocused: Bool
     
     @State private var offset: CGFloat = 0
@@ -33,6 +44,37 @@ struct SearchSheetView: View {
         RecentSearch(mainText: "1422 N. 5th St.", subText: "1422 N. 5th St., Boise, ID 83702"),
         RecentSearch(mainText: "1422 N. 5th St.", subText: "1422 N. 5th St., Boise, ID 83702")
     ]
+    
+    // Add this computed property to simplify the view
+    private var resultsList: some View {
+        ForEach(searchCompleter.results) { result in
+            SearchResultRow(result: result) {
+                handleSelection(result)
+            }
+        }
+    }
+    
+    // Move the selection logic to a separate function
+    private func handleSelection(_ result: SearchResult) {
+        searchCompleter.geocodeAddress(for: result) { coordinate in
+            if let coordinate = coordinate {
+                DispatchQueue.main.async {
+                    withAnimation {
+                        region = MKCoordinateRegion(
+                            center: coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                        )
+                        selectedLocation = SearchLocation(
+                            title: result.title,
+                            subtitle: result.subtitle,
+                            coordinate: coordinate
+                        )
+                        isPresented = false
+                    }
+                }
+            }
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -109,44 +151,7 @@ struct SearchSheetView: View {
                         }
                     }
                 } else {
-                    // Show search results
-                    ForEach(searchCompleter.results) { result in
-                        VStack(spacing: 0) {
-                            HStack(spacing: 16) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(hex: "2C2C2E"))
-                                        .frame(width: 48, height: 48)
-                                    
-                                    Text("📍")  // Changed to map pin emoji
-                                        .font(.system(size: 26))
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(result.title)
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 20))
-                                    Text(result.subtitle)
-                                        .foregroundColor(Color(hex: "8E8E93"))
-                                        .font(.system(size: 15))
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "arrow.up.left")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 20))
-                                    .padding(.trailing, 8)
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 12)
-                            
-                            Rectangle()
-                                .fill(Color(hex: "38383A"))
-                                .frame(height: 1)
-                                .padding(.leading, 80)
-                        }
-                    }
+                    resultsList  // Use the computed property here
                 }
             }
             
@@ -172,6 +177,51 @@ struct SearchSheetView: View {
         )
         .onAppear {
             isFocused = true
+        }
+    }
+}
+
+// Add this as a separate view
+struct SearchResultRow: View {
+    let result: SearchResult
+    let onTap: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "2C2C2E"))
+                        .frame(width: 48, height: 48)
+                    
+                    Text("📍")
+                        .font(.system(size: 26))
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(result.title)
+                        .foregroundColor(.white)
+                        .font(.system(size: 20))
+                    Text(result.subtitle)
+                        .foregroundColor(Color(hex: "8E8E93"))
+                        .font(.system(size: 15))
+                }
+                
+                Spacer()
+                
+                Image(systemName: "arrow.up.left")
+                    .foregroundColor(.white)
+                    .font(.system(size: 20))
+                    .padding(.trailing, 8)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .onTapGesture(perform: onTap)
+            
+            Rectangle()
+                .fill(Color(hex: "38383A"))
+                .frame(height: 1)
+                .padding(.leading, 80)
         }
     }
 }
@@ -242,11 +292,28 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
                    address.contains(", WI,") || address.contains(", WY,")
         }
         
+        // Just create the results without coordinates initially
         results = usResults.map { result in
             SearchResult(
                 title: result.title,
-                subtitle: result.subtitle
+                subtitle: result.subtitle,
+                location: nil
             )
+        }
+    }
+    
+    // Add this method to perform the geocoding only when a result is selected
+    func geocodeAddress(for result: SearchResult, completion: @escaping (CLLocationCoordinate2D?) -> Void) {
+        let searchRequest = MKLocalSearch.Request()
+        searchRequest.naturalLanguageQuery = result.title + ", " + result.subtitle
+        
+        let search = MKLocalSearch(request: searchRequest)
+        search.start { response, error in
+            if let coordinate = response?.mapItems.first?.placemark.coordinate {
+                completion(coordinate)
+            } else {
+                completion(nil)
+            }
         }
     }
     

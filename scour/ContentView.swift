@@ -9,6 +9,28 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+// Update the existing Offender struct
+struct Offender: Identifiable {
+    let id: UUID
+    let coordinate: CLLocationCoordinate2D
+    let type: MarkerType
+    
+    enum MarkerType {
+        case offender
+        case search
+    }
+    
+    init(id: UUID = UUID(), coordinate: CLLocationCoordinate2D, type: MarkerType = .offender) {
+        self.id = id
+        self.coordinate = coordinate
+        self.type = type
+    }
+    
+    static func searchMarker(coordinate: CLLocationCoordinate2D) -> Offender {
+        Offender(coordinate: coordinate, type: .search)
+    }
+}
+
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var searchText = ""
@@ -23,12 +45,12 @@ struct ContentView: View {
     // Sample offender data for demonstration
     @State private var offenders = [
         // Two offenders above "You" (at different distances)
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6190, longitude: -116.2003)),  // Northeast, further out
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6175, longitude: -116.2053)),  // Northwest, closer
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6190, longitude: -116.2003), type: .offender),  // Northeast, further out
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6175, longitude: -116.2053), type: .offender),  // Northwest, closer
         
         // Two offenders below "You" (at different distances)
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6120, longitude: -116.1993)),  // Southeast, further out
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6135, longitude: -116.2043)),  // Southwest, closer
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6120, longitude: -116.1993), type: .offender),  // Southeast, further out
+        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6135, longitude: -116.2043), type: .offender),  // Southwest, closer
     ]
     
     // Add these state variables inside ContentView
@@ -49,51 +71,74 @@ struct ContentView: View {
     @State private var displayedMarkerLocation: CLLocationCoordinate2D?
     @State private var isTrackingLocation = true  // Add this to track if we're following location
     
+    // Add state for selected search location
+    @State private var selectedSearchLocation: SearchLocation?
+    
+    // Update the computed property to use 'any AnnotationItem'
+    private var allAnnotations: [Offender] {
+        var items = offenders
+        if let searchLocation = selectedSearchLocation {
+            let searchMarker = Offender(
+                id: searchLocation.id,
+                coordinate: searchLocation.coordinate,
+                type: .search
+            )
+            items.append(searchMarker)
+        }
+        return items
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
             Map(coordinateRegion: $region,
                 showsUserLocation: false,
-                annotationItems: offenders) { item in
+                annotationItems: allAnnotations) { item in
                 MapAnnotation(coordinate: item.coordinate) {
-                    // Offender markers
-                    VStack(spacing: 0) {
-                        // Wolf icon with red background and white stroke
-                        ZStack {
-                            Capsule()
-                                .fill(Color.red)
-                                .frame(width: 65, height: 55)
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(Color.white, lineWidth: 1.25)
-                                )
+                    if item.type == .search {
+                        SearchLocationMarker()
+                            .id(item.id)  // Add this to maintain identity
+                    } else {
+                        // Regular offender marker
+                        VStack(spacing: 0) {
+                            // Wolf icon with red background and white stroke
+                            ZStack {
+                                Capsule()
+                                    .fill(Color.red)
+                                    .frame(width: 65, height: 55)
+                                    .overlay(
+                                        Capsule()
+                                            .strokeBorder(Color.white, lineWidth: 1.25)
+                                    )
+                                
+                                Text("🐺")
+                                    .font(.system(size: 40))
+                                    .offset(y: -1)
+                                    .modifier(BreathingModifier())  // Add breathing animation
+                            }
                             
-                            Text("🐺")
-                                .font(.system(size: 40))
-                                .offset(y: -1)
-                                .modifier(BreathingModifier())  // Add breathing animation
+                            // Triangle pointer with stroke
+                            ZStack {
+                                Image(systemName: "triangle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.red)
+                                
+                                Image(systemName: "triangle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                            }
+                            .offset(y: -5)
+                            .rotationEffect(.degrees(180))
                         }
-                        
-                        // Triangle pointer with stroke
-                        ZStack {
-                            Image(systemName: "triangle.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.red)
-                            
-                            Image(systemName: "triangle")
-                                .font(.system(size: 18))
-                                .foregroundColor(.white)
+                        .modifier(SwayingModifier())
+                        .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
+                        .onTapGesture {
+                            selectedOffender = item
+                            showingOffenderDetail = true
                         }
-                        .offset(y: -5)
-                        .rotationEffect(.degrees(180))
+                        .zIndex(0)
+                        .id(item.id)  // Add this to maintain identity
                     }
-                    .modifier(SwayingModifier())
-                    .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
-                    .onTapGesture {
-                        selectedOffender = item
-                        showingOffenderDetail = true
-                    }
-                    .zIndex(0)
                 }
             }
             .overlay {
@@ -343,7 +388,12 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingSearchSheet) {
-            SearchSheetView(searchText: $searchText, isPresented: $showingSearchSheet)
+            SearchSheetView(
+                searchText: $searchText,
+                isPresented: $showingSearchSheet,
+                region: $region,
+                selectedLocation: $selectedSearchLocation
+            )
         }
     }
 }
@@ -511,6 +561,40 @@ struct ButtonPulseModifier: ViewModifier {
             .onAppear {
                 isPulsing = true
             }
+    }
+}
+
+// Add this struct near the bottom of the file
+struct SearchLocationMarker: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Capsule()
+                    .fill(Color(hex: "282928"))
+                    .frame(width: 65, height: 55)
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.white, lineWidth: 1.25)
+                    )
+                
+                Text("📍")
+                    .font(.system(size: 40))
+                    .offset(y: -1)
+            }
+            
+            // Triangle pointer
+            ZStack {
+                Image(systemName: "triangle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(Color(hex: "282928"))
+                
+                Image(systemName: "triangle")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+            }
+            .offset(y: -5)
+            .rotationEffect(.degrees(180))
+        }
     }
 }
 
