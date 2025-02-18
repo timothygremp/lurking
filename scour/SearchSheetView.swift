@@ -102,6 +102,7 @@ struct SearchSheetView: View {
                             subtitle: search.subText,
                             coordinate: coordinate
                         )
+                        searchText = search.mainText + ", " + search.subText
                         isPresented = false
                     }
                 }

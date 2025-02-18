@@ -88,6 +88,14 @@ struct ContentView: View {
         return items
     }
     
+    // Add this computed property
+    private var displaySearchText: String {
+        if let location = selectedSearchLocation {
+            return location.title + ", " + location.subtitle
+        }
+        return "Search here"
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
@@ -252,11 +260,11 @@ struct ContentView: View {
                 HStack {
                     Text("🕵️‍♂️")
                         .font(.system(size: 30))
-                    TextField("Search here", text: $searchText)
+                    TextField(displaySearchText, text: $searchText)
                         .font(.system(size: 24))
-                        .foregroundColor(Color(hex: "A4A4AB"))
-                        .accentColor(Color(hex: "A4A4AB"))
-                        .disabled(true)  // Disable direct text input
+                        .foregroundColor(.white)
+                        .accentColor(.white)
+                        .disabled(true)
                 }
                 .padding(.vertical, 15)
                 .padding(.horizontal)
@@ -580,6 +588,7 @@ struct SearchLocationMarker: View {
                 Text("📍")
                     .font(.system(size: 40))
                     .offset(y: -1)
+                    .modifier(BreathingModifier())
             }
             
             // Triangle pointer
