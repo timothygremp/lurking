@@ -15,7 +15,8 @@ struct ContentView: View {
     @State private var showingSearchSheet = false
     @State private var selectedDistance: String = ".5 mi"  // Default selected distance
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023), // Boise coordinates
+        // Start with a wider view of US
+        center: CLLocationCoordinate2D(latitude: 39.8283, longitude: -98.5795),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
     
@@ -38,66 +39,88 @@ struct ContentView: View {
     @GestureState private var dragOffset = CGSize.zero
     @State private var dismissOffset = CGSize.zero
     
-    // Add this at the top of ContentView, after other @State variables
-    let youLocation = CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023)  // Boise center
+    // Add a state variable to store the user's location separately from the location manager
+    @State private var userLocation: CLLocationCoordinate2D?
     
-    // Add this as a static constant at the top of ContentView
-    private let youMarker = [
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6150, longitude: -116.2023))
-    ]
+    // Add this to track if initial location is set
+    @State private var hasSetInitialLocation = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Map View
+            // Map with only offender markers
             Map(coordinateRegion: $region,
-                showsUserLocation: true,
-                annotationItems: offenders + youMarker) { item in
+                showsUserLocation: false,
+                annotationItems: offenders) { item in
                 MapAnnotation(coordinate: item.coordinate) {
-                    if item.coordinate.latitude == 43.6150 && item.coordinate.longitude == -116.2023 {
-                        // You marker at fixed position
-                        YouMarker()
-                            .offset(y: -10)
-                            .zIndex(1)  // Make You marker appear on top
-                    } else {
-                        // Offender markers
-                        VStack(spacing: 0) {
-                            // Wolf icon with red background and white stroke
-                            ZStack {
-                                Capsule()
-                                    .fill(Color.red)
-                                    .frame(width: 65, height: 55)
-                                    .overlay(
-                                        Capsule()
-                                            .strokeBorder(Color.white, lineWidth: 1.25)
-                                    )
-                                
-                                Text("🐺")
-                                    .font(.system(size: 40))
-                                    .offset(y: -1)
-                                    .modifier(BreathingModifier())  // Add breathing animation
-                            }
+                    // Offender markers
+                    VStack(spacing: 0) {
+                        // Wolf icon with red background and white stroke
+                        ZStack {
+                            Capsule()
+                                .fill(Color.red)
+                                .frame(width: 65, height: 55)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(Color.white, lineWidth: 1.25)
+                                )
                             
-                            // Triangle pointer with stroke
-                            ZStack {
-                                Image(systemName: "triangle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.red)
-                                
-                                Image(systemName: "triangle")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.white)
-                            }
-                            .offset(y: -5)
-                            .rotationEffect(.degrees(180))
+                            Text("🐺")
+                                .font(.system(size: 40))
+                                .offset(y: -1)
+                                .modifier(BreathingModifier())  // Add breathing animation
                         }
-                        .modifier(SwayingModifier())
-                        .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
-                        .onTapGesture {
-                            selectedOffender = item
-                            showingOffenderDetail = true
+                        
+                        // Triangle pointer with stroke
+                        ZStack {
+                            Image(systemName: "triangle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.red)
+                            
+                            Image(systemName: "triangle")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
                         }
-                        .zIndex(0)  // Keep offender markers behind
+                        .offset(y: -5)
+                        .rotationEffect(.degrees(180))
                     }
+                    .modifier(SwayingModifier())
+                    .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
+                    .onTapGesture {
+                        selectedOffender = item
+                        showingOffenderDetail = true
+                    }
+                    .zIndex(0)
+                }
+            }
+            .overlay {
+                // Simpler overlay for YouMarker
+                if let location = userLocation {
+                    YouMarker()
+                        .position(
+                            x: CGFloat((location.longitude - region.center.longitude) / region.span.longitudeDelta + 0.5) * UIScreen.main.bounds.width,
+                            y: CGFloat(0.5 - (location.latitude - region.center.latitude) / region.span.latitudeDelta) * UIScreen.main.bounds.height
+                        )
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.3))
+                }
+            }
+            .onChange(of: locationManager.location) { newLocation in
+                if let location = newLocation {
+                    if !hasSetInitialLocation {
+                        withAnimation {
+                            region = MKCoordinateRegion(
+                                center: location.coordinate,
+                                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                            )
+                            hasSetInitialLocation = true
+                        }
+                    }
+                    userLocation = location.coordinate
+                }
+            }
+            .onAppear {
+                if let location = locationManager.location {
+                    userLocation = location.coordinate
                 }
             }
             .ignoresSafeArea()
@@ -135,6 +158,30 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .background(Color(hex: "282928"))
                     .cornerRadius(200)
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
+                // Add recenter button near location pill
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        if let location = locationManager.location {
+                            withAnimation {
+                                region = MKCoordinateRegion(
+                                    center: location.coordinate,
+                                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                                )
+                            }
+                        }
+                    }) {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 22))
+                            .frame(width: 44, height: 44)
+                            .background(Color(hex: "282928"))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
