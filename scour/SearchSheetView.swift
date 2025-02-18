@@ -87,6 +87,28 @@ struct SearchSheetView: View {
         }
     }
     
+    // Add this function to handle recent search selection
+    private func handleRecentSelection(_ search: RecentSearch) {
+        searchCompleter.geocodeAddress(forAddress: search.mainText + ", " + search.subText) { coordinate in
+            if let coordinate = coordinate {
+                DispatchQueue.main.async {
+                    withAnimation {
+                        region = MKCoordinateRegion(
+                            center: coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                        )
+                        selectedLocation = SearchLocation(
+                            title: search.mainText,
+                            subtitle: search.subText,
+                            coordinate: coordinate
+                        )
+                        isPresented = false
+                    }
+                }
+            }
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Drag indicator
@@ -158,6 +180,9 @@ struct SearchSheetView: View {
                                     .fill(Color(hex: "38383A"))
                                     .frame(height: 1)
                                     .padding(.leading, 80)
+                            }
+                            .onTapGesture {
+                                handleRecentSelection(search)
                             }
                         }
                     }
@@ -330,5 +355,19 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
     
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         print("Error: \(error.localizedDescription)")
+    }
+    
+    func geocodeAddress(forAddress address: String, completion: @escaping (CLLocationCoordinate2D?) -> Void) {
+        let searchRequest = MKLocalSearch.Request()
+        searchRequest.naturalLanguageQuery = address
+        
+        let search = MKLocalSearch(request: searchRequest)
+        search.start { response, error in
+            if let coordinate = response?.mapItems.first?.placemark.coordinate {
+                completion(coordinate)
+            } else {
+                completion(nil)
+            }
+        }
     }
 } 
