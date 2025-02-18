@@ -45,6 +45,10 @@ struct ContentView: View {
     // Add this to track if initial location is set
     @State private var hasSetInitialLocation = false
     
+    // Add a state for the displayed marker position
+    @State private var displayedMarkerLocation: CLLocationCoordinate2D?
+    @State private var isTrackingLocation = true  // Add this to track if we're following location
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
@@ -100,10 +104,14 @@ struct ContentView: View {
                             x: CGFloat((location.longitude - region.center.longitude) / region.span.longitudeDelta + 0.5) * UIScreen.main.bounds.width,
                             y: CGFloat(0.5 - (location.latitude - region.center.latitude) / region.span.latitudeDelta) * UIScreen.main.bounds.height
                         )
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.3))
                 }
             }
+            .gesture(
+                DragGesture()
+                    .onChanged { _ in
+                        isTrackingLocation = false
+                    }
+            )
             .onChange(of: locationManager.location) { newLocation in
                 if let location = newLocation {
                     if !hasSetInitialLocation {
@@ -115,7 +123,9 @@ struct ContentView: View {
                             hasSetInitialLocation = true
                         }
                     }
-                    userLocation = location.coordinate
+                    if isTrackingLocation {
+                        userLocation = location.coordinate
+                    }
                 }
             }
             .onAppear {
@@ -172,6 +182,8 @@ struct ContentView: View {
                                     center: location.coordinate,
                                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                                 )
+                                userLocation = location.coordinate
+                                isTrackingLocation = true
                             }
                         }
                     }) {
@@ -439,79 +451,4 @@ struct BreathingModifier: ViewModifier {
 
 // Modify DroppingModifier to use the index
 struct DroppingModifier: ViewModifier {
-    @State private var hasDropped = false
-    let index: Int
-    
-    func body(content: Content) -> some View {
-        content
-            .offset(y: hasDropped ? 0 : -1000)
-            .opacity(hasDropped ? 1 : 0)
-            .animation(
-                Animation.spring(
-                    response: 0.6,
-                    dampingFraction: 0.6,
-                    blendDuration: 0
-                ),
-                value: hasDropped
-            )
-            .onAppear {
-                // Delay based on index (0.3s initial + 0.2s per marker)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(index) * 0.2) {
-                    hasDropped = true
-                }
-            }
-    }
-}
-
-// Add this new view for the "You" pill
-struct YouMarker: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("You")
-                .foregroundColor(.white)
-                .font(.system(size: 18, weight: .medium))
-                .modifier(BreathingModifier())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(Color(hex: "282928"))
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(Color.white, lineWidth: 1)
-                        )
-                )
-            
-            // Triangle pointer with stroke
-            ZStack {
-                Image(systemName: "triangle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "282928"))
-                
-                Image(systemName: "triangle")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
-            }
-            .offset(y: -5)
-            .rotationEffect(.degrees(180))
-        }
-    }
-}
-
-// Add this new modifier for the button pulse
-struct ButtonPulseModifier: ViewModifier {
-    @State private var isPulsing = false
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPulsing ? 1.05 : 1.0)  // Subtle scale change
-            .animation(
-                Animation.easeInOut(duration: 1.2)
-                    .repeatForever(autoreverses: true),
-                value: isPulsing
-            )
-            .onAppear {
-                isPulsing = true
-            }
-    }
-}
+    @Stat
