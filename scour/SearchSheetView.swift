@@ -133,8 +133,9 @@ struct SearchSheetView: View {
                                 
                                 Spacer()
                                 
-                                Image(systemName: "chevron.right")  // Add chevron
-                                    .foregroundColor(.gray)
+                                Image(systemName: "arrow.up.left")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 20))
                                     .padding(.trailing, 8)
                             }
                             .padding(.horizontal)
