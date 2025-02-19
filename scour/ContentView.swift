@@ -27,8 +27,8 @@ struct Offender: Identifiable {
         case search
     }
     
-    init(id: UUID = UUID(), 
-         coordinate: CLLocationCoordinate2D, 
+    init(id: UUID = UUID(),
+         coordinate: CLLocationCoordinate2D,
          type: MarkerType = .offender,
          name: String = "",
          gender: String = "",
@@ -280,12 +280,25 @@ struct ContentView: View {
                     .onTapGesture {
                         if let location = locationManager.location {
                             withAnimation {
+                                // Reset region to user location
                                 region = MKCoordinateRegion(
                                     center: location.coordinate,
                                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                                 )
-                                userLocation = location.coordinate
+                                // Reset tracking
                                 isTrackingLocation = true
+                                userLocation = location.coordinate
+                                
+                                // Clear search location and text
+                                selectedSearchLocation = nil
+                                searchText = ""
+                                
+                                // Reset to default radius and fetch offenders
+                                selectedDistance = "0.5"
+                                offenderService.fetchOffenders(
+                                    location: location.coordinate,
+                                    distance: "0.5"
+                                )
                             }
                         }
                     }
@@ -301,22 +314,22 @@ struct ContentView: View {
                 // Distance markers
                 HStack(spacing: 15) {
                     DistanceMarker(distance: "3", isSelected: selectedDistance == "3")
-                        .onTapGesture { 
+                        .onTapGesture {
                             selectedDistance = "3"
                             fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "2", isSelected: selectedDistance == "2")
-                        .onTapGesture { 
+                        .onTapGesture {
                             selectedDistance = "2"
                             fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "1", isSelected: selectedDistance == "1")
-                        .onTapGesture { 
+                        .onTapGesture {
                             selectedDistance = "1"
                             fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "0.5", isSelected: selectedDistance == "0.5")
-                        .onTapGesture { 
+                        .onTapGesture {
                             selectedDistance = "0.5"
                             fetchOffendersForCurrentSelection()
                         }
@@ -722,5 +735,3 @@ extension CLLocationCoordinate2D {
         }
     }
 }
-
-
