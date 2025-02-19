@@ -7,15 +7,19 @@ struct RecentSearch: Identifiable, Codable {
     let id: UUID
     let mainText: String
     let subText: String
+    let state: String
+    let zip: String
     
-    init(mainText: String, subText: String) {
+    init(mainText: String, subText: String, state: String, zip: String) {
         self.id = UUID()
         self.mainText = mainText
         self.subText = subText
+        self.state = state
+        self.zip = zip
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, mainText, subText
+        case id, mainText, subText, state, zip
     }
 }
 
@@ -66,8 +70,10 @@ struct SearchSheetView: View {
     
     // Move the selection logic to a separate function
     private func handleSelection(_ result: SearchResult) {
-        searchCompleter.geocodeAddress(for: result) { coordinate in
-            if let location = coordinate {
+        searchCompleter.geocodeAddress(for: result) { coordinate, addressComponents in
+            if let location = coordinate,
+               let state = addressComponents?.state,
+               let zip = addressComponents?.postalCode {
                 withAnimation {
                     region = MKCoordinateRegion(
                         center: location,
@@ -79,12 +85,21 @@ struct SearchSheetView: View {
                         coordinate: location
                     )
                     
-                    // Add the API call here
+                    // Add the API call here with the correct state and zip
                     offenderService.fetchOffenders(
                         location: location,
-                        distance: "0.5"  // 0.5 mile radius
+                        distance: "0.5",
+                        state: state,
+                        zip: zip
                     )
                     
+                    // Add to recent searches with state and zip
+                    recentSearchManager.addSearch(
+                        title: result.title,
+                        subtitle: result.subtitle,
+                        state: state,
+                        zip: zip
+                    )
                     isPresented = false
                 }
             }
@@ -106,10 +121,12 @@ struct SearchSheetView: View {
                         coordinate: location
                     )
                     
-                    // Add the API call here too
+                    // Use the saved state and zip
                     offenderService.fetchOffenders(
                         location: location,
-                        distance: "0.5"  // 0.5 mile radius
+                        distance: "0.5",
+                        state: search.state,
+                        zip: search.zip
                     )
                     
                     isPresented = false
@@ -348,16 +365,28 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
     }
     
     // Add this method to perform the geocoding only when a result is selected
-    func geocodeAddress(for result: SearchResult, completion: @escaping (CLLocationCoordinate2D?) -> Void) {
+    func geocodeAddress(for result: SearchResult, completion: @escaping (CLLocationCoordinate2D?, AddressComponents?) -> Void) {
         let searchRequest = MKLocalSearch.Request()
         searchRequest.naturalLanguageQuery = result.title + ", " + result.subtitle
         
         let search = MKLocalSearch(request: searchRequest)
         search.start { response, error in
-            if let coordinate = response?.mapItems.first?.placemark.coordinate {
-                completion(coordinate)
+            if let placemark = response?.mapItems.first?.placemark {
+                // Extract state and zip from placemark
+                print("Placemark state: \(placemark.administrativeArea ?? "nil")")
+                print("Placemark zip: \(placemark.postalCode ?? "nil")")
+                print("Full placemark: \(placemark)")
+                
+                let state = placemark.administrativeArea?.uppercased() ?? "ID"
+                let zip = placemark.postalCode ?? "83702"
+                
+                let components = AddressComponents(
+                    state: state,
+                    postalCode: zip
+                )
+                completion(placemark.coordinate, components)
             } else {
-                completion(nil)
+                completion(nil, nil)
             }
         }
     }
@@ -379,4 +408,10 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
             }
         }
     }
+}
+
+// Add this struct to hold address components
+struct AddressComponents {
+    let state: String
+    let postalCode: String
 } 

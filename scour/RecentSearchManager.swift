@@ -11,9 +11,14 @@ class RecentSearchManager: ObservableObject {
         loadRecentSearches()
     }
     
-    func addSearch(title: String, subtitle: String) {
-        print("Adding search: \(title), \(subtitle)")
-        let newSearch = RecentSearch(mainText: title, subText: subtitle)
+    func addSearch(title: String, subtitle: String, state: String, zip: String) {
+        print("Adding search: \(title), \(subtitle), \(state), \(zip)")
+        let newSearch = RecentSearch(
+            mainText: title,
+            subText: subtitle,
+            state: state,
+            zip: zip
+        )
         
         // Remove if already exists to avoid duplicates
         recentSearches.removeAll { $0.mainText == title && $0.subText == subtitle }

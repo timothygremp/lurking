@@ -84,13 +84,13 @@ class OffenderService: ObservableObject {
     @Published var offenders: [Offender] = []
     @Published var errorMessage: String?
     
-    func fetchOffenders(location: CLLocationCoordinate2D, distance: String) {
+    func fetchOffenders(location: CLLocationCoordinate2D, distance: String, state: String = "ID", zip: String = "83702") {
         let request = OffenderRequest(
-            zip: "83702",
+            zip: zip,
             longitude: location.longitude,
             latitude: location.latitude,
             distance: distance,
-            state: "ID"
+            state: state
         )
         
         guard let url = URL(string: "https://mobile-api-v2.nsopw.org/api/search") else { 
@@ -154,11 +154,12 @@ class OffenderService: ObservableObject {
                         self?.errorMessage = nil
                         let markers: [Offender] = response.offenders.flatMap { offender -> [Offender] in
                             let residentialLocations = offender.locations.filter { location in
-                                location.type == "RESIDENTIAL" && 
+                                (location.type == "RESIDENTIAL" || location.type == "RESIDENCE") && 
                                 location.latitude != nil && 
                                 location.longitude != nil
                             }
                             print("Offender \(offender.name.givenName) has \(residentialLocations.count) valid residential locations")
+                            print("Location types: \(offender.locations.map { $0.type })")
                             
                             return residentialLocations.compactMap { location in
                                 guard let lat = location.latitude,
