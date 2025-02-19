@@ -14,16 +14,37 @@ struct Offender: Identifiable {
     let id: UUID
     let coordinate: CLLocationCoordinate2D
     let type: MarkerType
+    // Add new properties
+    let name: String
+    let gender: String
+    let age: Int
+    let address: String
+    let fullAddress: String
+    let offenderUri: String
     
     enum MarkerType {
         case offender
         case search
     }
     
-    init(id: UUID = UUID(), coordinate: CLLocationCoordinate2D, type: MarkerType = .offender) {
+    init(id: UUID = UUID(), 
+         coordinate: CLLocationCoordinate2D, 
+         type: MarkerType = .offender,
+         name: String = "",
+         gender: String = "",
+         age: Int = 0,
+         address: String = "",
+         fullAddress: String = "",
+         offenderUri: String = "") {
         self.id = id
         self.coordinate = coordinate
         self.type = type
+        self.name = name
+        self.gender = gender
+        self.age = age
+        self.address = address
+        self.fullAddress = fullAddress
+        self.offenderUri = offenderUri
     }
     
     static func searchMarker(coordinate: CLLocationCoordinate2D) -> Offender {
@@ -77,7 +98,13 @@ struct ContentView: View {
             let searchMarker = Offender(
                 id: searchLocation.id,
                 coordinate: searchLocation.coordinate,
-                type: .search
+                type: .search,
+                name: searchLocation.title,
+                gender: "",
+                age: 0,
+                address: searchLocation.subtitle,
+                fullAddress: searchLocation.subtitle,
+                offenderUri: ""
             )
             items.append(searchMarker)
         }
@@ -326,10 +353,10 @@ struct ContentView: View {
                             .modifier(BreathingModifier())
                         
                         VStack(alignment: .leading) {
-                            Text("Harvey Weinstein")
+                            Text(selectedOffender?.name ?? "Unknown")
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.white)
-                            Text("500 ft away from you")
+                            Text("Nearby")
                                 .font(.system(size: 20))
                                 .foregroundColor(.red)
                         }
@@ -340,7 +367,7 @@ struct ContentView: View {
                         VStack(alignment: .leading) {
                             Text("Age:")
                                 .foregroundColor(.gray)
-                            Text("55")
+                            Text("\(selectedOffender?.age ?? 0)")
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.white)
                         }
@@ -348,7 +375,7 @@ struct ContentView: View {
                         VStack(alignment: .leading) {
                             Text("Sex:")
                                 .foregroundColor(.gray)
-                            Text("M")
+                            Text(selectedOffender?.gender ?? "")
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.white)
                         }
@@ -358,30 +385,31 @@ struct ContentView: View {
                     VStack(alignment: .leading) {
                         Text("Address:")
                             .foregroundColor(.gray)
-                        Text("1422 N. 5th St.")
+                        Text(selectedOffender?.address ?? "")
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(.white)
-                        Text("1422 N. 5th St., Boise, ID 83702")
+                        Text(selectedOffender?.fullAddress ?? "")
                             .foregroundColor(.gray)
                     }
                     
                     Spacer()
                     
-                    // See Photo & Crimes button
-                    Button(action: {
-                        // Action for viewing photos and crimes
-                    }) {
-                        Text("See Photo & Crimes")
-                            .font(.system(size: 22, weight: .bold))  // Bigger, bolder text
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)  // More vertical padding
-                            .background(
-                                Capsule()  // Pill shape
-                                    .fill(Color.red)
-                            )
+                    // Update the button to open the offender URI
+                    if let offenderUri = selectedOffender?.offenderUri,
+                       let url = URL(string: offenderUri) {
+                        Link(destination: url) {
+                            Text("See Photo & Crimes")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.red)
+                                )
+                        }
+                        .modifier(ButtonPulseModifier())
                     }
-                    .modifier(ButtonPulseModifier())  // Add pulsing animation
                 }
                 .padding(20)
                 .frame(height: 340)

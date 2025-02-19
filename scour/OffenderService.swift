@@ -172,7 +172,13 @@ class OffenderService: ObservableObject {
                                         latitude: lat,
                                         longitude: lon
                                     ),
-                                    type: .offender
+                                    type: .offender,
+                                    name: "\(offender.name.givenName) \(offender.name.surName)",
+                                    gender: offender.gender,
+                                    age: offender.age,
+                                    address: location.streetAddress,
+                                    fullAddress: "\(location.streetAddress), \(location.city), \(location.state) \(location.zipCode)",
+                                    offenderUri: offender.offenderUri
                                 )
                             }
                         }
