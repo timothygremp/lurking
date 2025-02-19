@@ -83,14 +83,17 @@ struct AliasName: Codable {
 class OffenderService: ObservableObject {
     @Published var offenders: [Offender] = []
     @Published var errorMessage: String?
+    @Published var isLoading = false  // Add loading state
     
-    func fetchOffenders(location: CLLocationCoordinate2D, distance: String, state: String = "ID", zip: String = "83702") {
+    func fetchOffenders(location: CLLocationCoordinate2D, distance: String, state: String? = nil, zip: String? = nil) {
+        isLoading = true  // Set loading state when starting fetch
+        
         let request = OffenderRequest(
-            zip: zip,
+            zip: zip ?? "83702",
             longitude: location.longitude,
             latitude: location.latitude,
             distance: distance,
-            state: state
+            state: state ?? "ID"
         )
         
         guard let url = URL(string: "https://mobile-api-v2.nsopw.org/api/search") else { 
@@ -122,6 +125,7 @@ class OffenderService: ObservableObject {
                 print("Error fetching offenders: \(error)")
                 DispatchQueue.main.async {
                     self?.errorMessage = "Network error occurred. Please try again."
+                    self?.isLoading = false  // Clear loading state on error
                 }
                 return
             }
@@ -150,6 +154,7 @@ class OffenderService: ObservableObject {
                 DispatchQueue.main.async {
                     if response.offenders.isEmpty {
                         self?.errorMessage = "No offenders found, please change your search parameters and try again."
+                        self?.isLoading = false  // Clear loading state on no offenders
                     } else {
                         self?.errorMessage = nil
                         let markers: [Offender] = response.offenders.flatMap { offender -> [Offender] in
@@ -185,6 +190,7 @@ class OffenderService: ObservableObject {
                         }
                         print("Created \(markers.count) markers")
                         self?.offenders = markers
+                        self?.isLoading = false  // Clear loading state on success
                     }
                 }
             } catch {
@@ -194,6 +200,7 @@ class OffenderService: ObservableObject {
                 }
                 DispatchQueue.main.async {
                     self?.errorMessage = "Error processing response. Please try again."
+                    self?.isLoading = false  // Clear loading state on error
                 }
             }
         }.resume()

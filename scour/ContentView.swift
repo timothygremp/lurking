@@ -482,6 +482,27 @@ struct ContentView: View {
                     value: showingOffenderDetail
                 )
             }
+            
+            if offenderService.isLoading {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                    .allowsHitTesting(true)
+                
+                GeometryReader { geometry in
+                    VStack {
+                        Text("🐺")
+                            .font(.system(size: 100))
+                            .modifier(BreathingModifier())
+                        
+                        Text("Searching...")
+                            .foregroundColor(.white)
+                    }
+                    .padding(40)
+                    .background(Color(hex: "282928"))
+                    .cornerRadius(20)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingSearchSheet) {
