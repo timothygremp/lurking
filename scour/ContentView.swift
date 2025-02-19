@@ -35,23 +35,19 @@ struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var searchText = ""
     @State private var showingSearchSheet = false
-    @State private var selectedDistance: String = ".5 mi"  // Default selected distance
+    @State private var selectedDistance: String = "0.5"  // Change default to "0.5"
     @State private var region = MKCoordinateRegion(
         // Start with a wider view of US
         center: CLLocationCoordinate2D(latitude: 39.8283, longitude: -98.5795),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
     
-    // Sample offender data for demonstration
-    @State private var offenders = [
-        // Two offenders above "You" (at different distances)
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6190, longitude: -116.2003), type: .offender),  // Northeast, further out
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6175, longitude: -116.2053), type: .offender),  // Northwest, closer
-        
-        // Two offenders below "You" (at different distances)
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6120, longitude: -116.1993), type: .offender),  // Southeast, further out
-        Offender(coordinate: CLLocationCoordinate2D(latitude: 43.6135, longitude: -116.2043), type: .offender),  // Southwest, closer
-    ]
+    @StateObject private var offenderService = OffenderService()
+    
+    // Update offenders to use the service's data
+    var offenders: [Offender] {
+        offenderService.offenders
+    }
     
     // Add these state variables inside ContentView
     @State private var showingOffenderDetail = false
@@ -179,6 +175,8 @@ struct ContentView: View {
                     if isTrackingLocation {
                         userLocation = location.coordinate
                     }
+                    // Pass the selected distance
+                    offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
                 }
             }
             .onAppear {
@@ -244,14 +242,34 @@ struct ContentView: View {
             VStack(spacing: 10) {
                 // Distance markers
                 HStack(spacing: 15) {
-                    DistanceMarker(distance: "3 mi", isSelected: selectedDistance == "3 mi")
-                        .onTapGesture { selectedDistance = "3 mi" }
-                    DistanceMarker(distance: "2 mi", isSelected: selectedDistance == "2 mi")
-                        .onTapGesture { selectedDistance = "2 mi" }
-                    DistanceMarker(distance: "1 mi", isSelected: selectedDistance == "1 mi")
-                        .onTapGesture { selectedDistance = "1 mi" }
-                    DistanceMarker(distance: ".5 mi", isSelected: selectedDistance == ".5 mi")
-                        .onTapGesture { selectedDistance = ".5 mi" }
+                    DistanceMarker(distance: "3", isSelected: selectedDistance == "3")
+                        .onTapGesture { 
+                            selectedDistance = "3"
+                            if let location = locationManager.location {
+                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
+                            }
+                        }
+                    DistanceMarker(distance: "2", isSelected: selectedDistance == "2")
+                        .onTapGesture { 
+                            selectedDistance = "2"
+                            if let location = locationManager.location {
+                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
+                            }
+                        }
+                    DistanceMarker(distance: "1", isSelected: selectedDistance == "1")
+                        .onTapGesture { 
+                            selectedDistance = "1"
+                            if let location = locationManager.location {
+                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
+                            }
+                        }
+                    DistanceMarker(distance: "0.5", isSelected: selectedDistance == "0.5")
+                        .onTapGesture { 
+                            selectedDistance = "0.5"
+                            if let location = locationManager.location {
+                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
+                            }
+                        }
                 }
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -403,6 +421,14 @@ struct ContentView: View {
                 selectedLocation: $selectedSearchLocation
             )
         }
+        .alert("Search Result", isPresented: .init(
+            get: { offenderService.errorMessage != nil },
+            set: { if !$0 { offenderService.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(offenderService.errorMessage ?? "")
+        }
     }
 }
 
@@ -411,7 +437,7 @@ struct DistanceMarker: View {
     let isSelected: Bool
     
     var body: some View {
-        Text(distance)
+        Text("\(distance) mi")
             .foregroundColor(.white)
             .font(.system(size: 18, weight: .medium))
             .padding(.horizontal, 16)
