@@ -157,6 +157,26 @@ struct SearchSheetView: View {
                     .onChange(of: searchText) { newValue in
                         searchCompleter.searchTerm = newValue
                     }
+                
+                // Add cancel button
+                if !searchText.isEmpty {
+                    Button(action: {
+                        searchText = ""
+                        searchCompleter.searchTerm = ""
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 20, height: 20)
+                            
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: searchText)
+                }
             }
             .padding(.vertical, 15)
             .padding(.horizontal)
