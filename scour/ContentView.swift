@@ -128,6 +128,26 @@ struct ContentView: View {
         return "Search here"
     }
     
+    private func fetchOffendersForCurrentSelection() {
+        if let searchLocation = selectedSearchLocation,
+           let state = searchLocation.state,
+           let zip = searchLocation.zip {
+            // Use search location with its state/zip
+            offenderService.fetchOffenders(
+                location: searchLocation.coordinate,
+                distance: selectedDistance,
+                state: state,
+                zip: zip
+            )
+        } else if let location = locationManager.location {
+            // Use current location with default state/zip
+            offenderService.fetchOffenders(
+                location: location.coordinate,
+                distance: selectedDistance
+            )
+        }
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
@@ -210,9 +230,11 @@ struct ContentView: View {
                     }
                     if isTrackingLocation {
                         userLocation = location.coordinate
+                        // Only fetch offenders if we're using current location (no search location)
+                        if selectedSearchLocation == nil {
+                            fetchOffendersForCurrentSelection()
+                        }
                     }
-                    // Pass the selected distance
-                    offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
                 }
             }
             .onAppear {
@@ -281,30 +303,22 @@ struct ContentView: View {
                     DistanceMarker(distance: "3", isSelected: selectedDistance == "3")
                         .onTapGesture { 
                             selectedDistance = "3"
-                            if let location = locationManager.location {
-                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
-                            }
+                            fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "2", isSelected: selectedDistance == "2")
                         .onTapGesture { 
                             selectedDistance = "2"
-                            if let location = locationManager.location {
-                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
-                            }
+                            fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "1", isSelected: selectedDistance == "1")
                         .onTapGesture { 
                             selectedDistance = "1"
-                            if let location = locationManager.location {
-                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
-                            }
+                            fetchOffendersForCurrentSelection()
                         }
                     DistanceMarker(distance: "0.5", isSelected: selectedDistance == "0.5")
                         .onTapGesture { 
                             selectedDistance = "0.5"
-                            if let location = locationManager.location {
-                                offenderService.fetchOffenders(location: location.coordinate, distance: selectedDistance)
-                            }
+                            fetchOffendersForCurrentSelection()
                         }
                 }
                 .padding(.horizontal)

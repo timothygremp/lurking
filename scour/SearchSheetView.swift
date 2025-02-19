@@ -37,6 +37,8 @@ struct SearchLocation: Identifiable {
     let title: String
     let subtitle: String
     let coordinate: CLLocationCoordinate2D
+    let state: String?
+    let zip: String?
 }
 
 struct SearchSheetView: View {
@@ -82,7 +84,9 @@ struct SearchSheetView: View {
                     selectedLocation = SearchLocation(
                         title: result.title,
                         subtitle: result.subtitle,
-                        coordinate: location
+                        coordinate: location,
+                        state: state,
+                        zip: zip
                     )
                     
                     // Add the API call here with the correct state and zip
@@ -118,7 +122,9 @@ struct SearchSheetView: View {
                     selectedLocation = SearchLocation(
                         title: search.mainText,
                         subtitle: search.subText,
-                        coordinate: location
+                        coordinate: location,
+                        state: search.state,
+                        zip: search.zip
                     )
                     
                     // Use the saved state and zip
