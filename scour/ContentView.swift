@@ -52,6 +52,47 @@ struct Offender: Identifiable {
     }
 }
 
+// Add this struct for the loading overlay
+struct LoadingOverlay: View {
+    // Add the breathing animation
+    @State private var isBreathing = false
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 20) {
+                Text("🐺")
+                    .font(.system(size: 100))
+                    .scaleEffect(isBreathing ? 1.1 : 1.0)
+                    .animation(
+                        Animation.easeInOut(duration: 1.0)
+                            .repeatForever(autoreverses: true),
+                        value: isBreathing
+                    )
+                
+                Text("Searching...")
+                    .foregroundColor(.white)
+                    .font(.system(size: 24, weight: .medium))
+                    .scaleEffect(isBreathing ? 1.1 : 1.0)
+                    .animation(
+                        Animation.easeInOut(duration: 1.0)
+                            .repeatForever(autoreverses: true),
+                        value: isBreathing
+                    )
+            }
+            .frame(width: 200, height: 200)
+            .background(Color(hex: "282928"))
+            .cornerRadius(20)
+            .onAppear {
+                isBreathing = true
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @State private var searchText = ""
@@ -149,591 +190,313 @@ struct ContentView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Map with only offender markers
-            Map(coordinateRegion: $region,
-                showsUserLocation: false,
-                annotationItems: allAnnotations) { item in
-                MapAnnotation(coordinate: item.coordinate) {
-                    if item.type == .search {
-                        SearchLocationMarker()
+        ZStack {
+            // Existing map view
+            ZStack(alignment: .bottom) {
+                // Map with only offender markers
+                Map(coordinateRegion: $region,
+                    showsUserLocation: false,
+                    annotationItems: allAnnotations) { item in
+                    MapAnnotation(coordinate: item.coordinate) {
+                        if item.type == .search {
+                            SearchLocationMarker()
+                                .id(item.id)  // Add this to maintain identity
+                        } else {
+                            // Regular offender marker
+                            VStack(spacing: 0) {
+                                // Wolf icon with red background and white stroke
+                                ZStack {
+                                    Capsule()
+                                        .fill(Color.red)
+                                        .frame(width: 65, height: 55)
+                                        .overlay(
+                                            Capsule()
+                                                .strokeBorder(Color.white, lineWidth: 1.25)
+                                        )
+                                    
+                                    Text("🐺")
+                                        .font(.system(size: 40))
+                                        .offset(y: -1)
+                                        .modifier(BreathingModifier())  // Add breathing animation
+                                }
+                                
+                                // Triangle pointer with stroke
+                                ZStack {
+                                    Image(systemName: "triangle.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.red)
+                                    
+                                    Image(systemName: "triangle")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.white)
+                                }
+                                .offset(y: -5)
+                                .rotationEffect(.degrees(180))
+                            }
+                            .modifier(SwayingModifier())
+                            .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
+                            .onTapGesture {
+                                selectedOffender = item
+                                showingOffenderDetail = true
+                            }
+                            .zIndex(0)
                             .id(item.id)  // Add this to maintain identity
-                    } else {
-                        // Regular offender marker
-                        VStack(spacing: 0) {
-                            // Wolf icon with red background and white stroke
-                            ZStack {
-                                Capsule()
-                                    .fill(Color.red)
-                                    .frame(width: 65, height: 55)
-                                    .overlay(
-                                        Capsule()
-                                            .strokeBorder(Color.white, lineWidth: 1.25)
-                                    )
-                                
-                                Text("🐺")
-                                    .font(.system(size: 40))
-                                    .offset(y: -1)
-                                    .modifier(BreathingModifier())  // Add breathing animation
-                            }
-                            
-                            // Triangle pointer with stroke
-                            ZStack {
-                                Image(systemName: "triangle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.red)
-                                
-                                Image(systemName: "triangle")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.white)
-                            }
-                            .offset(y: -5)
-                            .rotationEffect(.degrees(180))
                         }
-                        .modifier(SwayingModifier())
-                        .modifier(DroppingModifier(index: offenders.firstIndex(where: { $0.id == item.id }) ?? 0))
-                        .onTapGesture {
-                            selectedOffender = item
-                            showingOffenderDetail = true
-                        }
-                        .zIndex(0)
-                        .id(item.id)  // Add this to maintain identity
                     }
                 }
-            }
-            .overlay {
-                // Simpler overlay for YouMarker
-                if let location = userLocation {
-                    YouMarker()
-                        .position(
-                            x: CGFloat((location.longitude - region.center.longitude) / region.span.longitudeDelta + 0.5) * UIScreen.main.bounds.width,
-                            y: CGFloat(0.5 - (location.latitude - region.center.latitude) / region.span.latitudeDelta) * UIScreen.main.bounds.height
-                        )
-                }
-            }
-            .gesture(
-                DragGesture()
-                    .onChanged { _ in
-                        isTrackingLocation = false
-                    }
-            )
-            .onChange(of: locationManager.location) { newLocation in
-                if let location = newLocation {
-                    if !hasSetInitialLocation {
-                        withAnimation {
-                            region = MKCoordinateRegion(
-                                center: location.coordinate,
-                                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                .overlay {
+                    // Simpler overlay for YouMarker
+                    if let location = userLocation {
+                        YouMarker()
+                            .position(
+                                x: CGFloat((location.longitude - region.center.longitude) / region.span.longitudeDelta + 0.5) * UIScreen.main.bounds.width,
+                                y: CGFloat(0.5 - (location.latitude - region.center.latitude) / region.span.latitudeDelta) * UIScreen.main.bounds.height
                             )
-                            hasSetInitialLocation = true
-                        }
-                    }
-                    if isTrackingLocation {
-                        userLocation = location.coordinate
-                        // Only fetch offenders if we're using current location (no search location)
-                        if selectedSearchLocation == nil {
-                            fetchOffendersForCurrentSelection()
-                        }
                     }
                 }
-            }
-            .onAppear {
-                if let location = locationManager.location {
-                    userLocation = location.coordinate
-                }
-            }
-            .ignoresSafeArea()
-            
-            // Top overlays
-            VStack {
-                HStack {
-                    // Scour pill
-                    HStack {
-                        Text("🐺")
-                            .font(.system(size: 30))
-                            .modifier(BreathingModifier())  // Add breathing animation
-                        Text("Scour")
-                            .foregroundColor(.white)
-                            .font(.system(size: 28, weight: .medium))
-                    }
-                    .frame(height: 52)
-                    .padding(.horizontal, 18)
-                    .background(Color(hex: "282928"))
-                    .cornerRadius(200)
-                    
-                    Spacer()
-                    
-                    // Location pill
-                    HStack {
-                        Image(systemName: "location.north.fill")
-                            .foregroundColor(.white)
-                            .font(.system(size: 26))
-                            .rotationEffect(.degrees(45))
-                            .padding(.leading, 4)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                    .frame(height: 52)
-                    .frame(width: 34)
-                    .padding(.horizontal, 20)
-                    .background(Color(hex: "282928"))
-                    .cornerRadius(200)
-                    .onTapGesture {
-                        if let location = locationManager.location {
+                .gesture(
+                    DragGesture()
+                        .onChanged { _ in
+                            isTrackingLocation = false
+                        }
+                )
+                .onChange(of: locationManager.location) { newLocation in
+                    if let location = newLocation {
+                        if !hasSetInitialLocation {
                             withAnimation {
-                                // Reset region to user location
                                 region = MKCoordinateRegion(
                                     center: location.coordinate,
                                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                                 )
-                                // Reset tracking
-                                isTrackingLocation = true
-                                userLocation = location.coordinate
-                                
-                                // Clear search location and text
-                                selectedSearchLocation = nil
-                                searchText = ""
-                                
-                                // Reset to default radius and fetch offenders
-                                selectedDistance = "0.5"
-                                offenderService.fetchOffenders(
-                                    location: location.coordinate,
-                                    distance: "0.5"
-                                )
+                                hasSetInitialLocation = true
+                            }
+                        }
+                        if isTrackingLocation {
+                            userLocation = location.coordinate
+                            // Only fetch offenders if we're using current location (no search location)
+                            if selectedSearchLocation == nil {
+                                fetchOffendersForCurrentSelection()
                             }
                         }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                
-                Spacer()
-            }
-            
-            // Bottom UI Stack
-            VStack(spacing: 10) {
-                // Distance markers
-                HStack(spacing: 15) {
-                    DistanceMarker(distance: "3", isSelected: selectedDistance == "3")
-                        .onTapGesture { 
-                            selectedDistance = "3"
-                            fetchOffendersForCurrentSelection()
-                        }
-                    DistanceMarker(distance: "2", isSelected: selectedDistance == "2")
-                        .onTapGesture { 
-                            selectedDistance = "2"
-                            fetchOffendersForCurrentSelection()
-                        }
-                    DistanceMarker(distance: "1", isSelected: selectedDistance == "1")
-                        .onTapGesture { 
-                            selectedDistance = "1"
-                            fetchOffendersForCurrentSelection()
-                        }
-                    DistanceMarker(distance: "0.5", isSelected: selectedDistance == "0.5")
-                        .onTapGesture { 
-                            selectedDistance = "0.5"
-                            fetchOffendersForCurrentSelection()
-                        }
-                }
-                .padding(.horizontal)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Search Bar
-                HStack {
-                    Text("🕵️‍♂️")
-                        .font(.system(size: 30))
-                    TextField(displaySearchText, text: $searchText)
-                        .font(.system(size: 24))
-                        .foregroundColor(.white)
-                        .accentColor(.white)
-                        .disabled(true)
-                }
-                .padding(.vertical, 15)
-                .padding(.horizontal)
-                .background(Color(hex: "282928"))
-                .cornerRadius(200)
-                .padding(.horizontal)
-                .onTapGesture {
-                    showingSearchSheet = true
-                }  // Move the tap gesture here
-            }
-            .padding(.bottom, 30)
-            
-            // Sheet presentation
-            if showingOffenderDetail {
-                // Dark overlay
-                Color.black.opacity(0.5)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        showingOffenderDetail = false
+                .onAppear {
+                    if let location = locationManager.location {
+                        userLocation = location.coordinate
                     }
-                    .transition(.opacity)
-                    .animation(
-                        .easeInOut(duration: 0.5),  // Increased from 0.3 for smoother fade
-                        value: showingOffenderDetail
-                    )
+                }
+                .ignoresSafeArea()
                 
-                // Offender detail card
-                VStack(alignment: .leading, spacing: 16) {
-                    // Add drag indicator at the top
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.5))
-                        .frame(width: 40, height: 4)
-                        .cornerRadius(2)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 8)
-                    
-                    // Header with wolf and name
+                // Top overlays
+                VStack {
                     HStack {
-                        Text("🐺")
-                            .font(.system(size: 40))
-                            .modifier(BreathingModifier())
-                        
-                        VStack(alignment: .leading) {
-                            Text(selectedOffender?.name ?? "Unknown")
-                                .font(.system(size: 24, weight: .medium))
+                        // Scour pill
+                        HStack {
+                            Text("🐺")
+                                .font(.system(size: 30))
+                                .modifier(BreathingModifier())  // Add breathing animation
+                            Text("Lurk")
                                 .foregroundColor(.white)
-                            if let offenderLocation = selectedOffender?.coordinate,
-                               let reference = referenceLocation {
-                                Text(reference.formattedDistance(to: offenderLocation) + " away")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.red)
-                            } else {
-                                Text("Distance unknown")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.red)
+                                .font(.system(size: 28, weight: .medium))
+                        }
+                        .frame(height: 52)
+                        .padding(.horizontal, 18)
+                        .background(Color(hex: "282928"))
+                        .cornerRadius(200)
+                        
+                        Spacer()
+                        
+                        // Location pill
+                        HStack {
+                            Image(systemName: "location.north.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: 26))
+                                .rotationEffect(.degrees(45))
+                                .padding(.leading, 4)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .frame(height: 52)
+                        .frame(width: 34)
+                        .padding(.horizontal, 20)
+                        .background(Color(hex: "282928"))
+                        .cornerRadius(200)
+                        .onTapGesture {
+                            if let location = locationManager.location {
+                                withAnimation {
+                                    // Reset region to user location
+                                    region = MKCoordinateRegion(
+                                        center: location.coordinate,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                                    )
+                                    // Reset tracking
+                                    isTrackingLocation = true
+                                    userLocation = location.coordinate
+                                    
+                                    // Clear search location and text
+                                    selectedSearchLocation = nil
+                                    searchText = ""
+                                    
+                                    // Reset to default radius and fetch offenders
+                                    selectedDistance = "0.5"
+                                    offenderService.fetchOffenders(
+                                        location: location.coordinate,
+                                        distance: "0.5"
+                                    )
+                                }
                             }
                         }
                     }
-                    
-                    // Info grid
-                    HStack(spacing: 40) {
-                        VStack(alignment: .leading) {
-                            Text("Age:")
-                                .foregroundColor(.gray)
-                            Text("\(selectedOffender?.age ?? 0)")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                        
-                        VStack(alignment: .leading) {
-                            Text("Sex:")
-                                .foregroundColor(.gray)
-                            Text(selectedOffender?.gender ?? "")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    
-                    // Address section
-                    VStack(alignment: .leading) {
-                        Text("Address:")
-                            .foregroundColor(.gray)
-                        Text(selectedOffender?.address ?? "")
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(.white)
-                        Text(selectedOffender?.fullAddress ?? "")
-                            .foregroundColor(.gray)
-                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                     
                     Spacer()
-                    
-                    // Update the button to open the offender URI
-                    if let offenderUri = selectedOffender?.offenderUri,
-                       let url = URL(string: offenderUri) {
-                        Link(destination: url) {
-                            Text("See Photo & Crimes")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.red)
-                                )
-                        }
-                        .modifier(ButtonPulseModifier())
-                    }
                 }
-                .padding(20)
-                .frame(height: 340)
-                .background(Color(hex: "1C1C1E"))
-                .offset(y: max(0, dragOffset.height + dismissOffset.height))
-                .gesture(
-                    DragGesture()
-                        .updating($dragOffset) { value, state, _ in
-                            state = value.translation
+                
+                // Bottom UI Stack
+                VStack(spacing: 10) {
+                    // Distance markers
+                    HStack(spacing: 15) {
+                        DistanceMarker(distance: "3", isSelected: selectedDistance == "3")
+                            .onTapGesture { 
+                                selectedDistance = "3"
+                                fetchOffendersForCurrentSelection()
+                            }
+                        DistanceMarker(distance: "2", isSelected: selectedDistance == "2")
+                            .onTapGesture { 
+                                selectedDistance = "2"
+                                fetchOffendersForCurrentSelection()
+                            }
+                        DistanceMarker(distance: "1", isSelected: selectedDistance == "1")
+                            .onTapGesture { 
+                                selectedDistance = "1"
+                                fetchOffendersForCurrentSelection()
+                            }
+                        DistanceMarker(distance: "0.5", isSelected: selectedDistance == "0.5")
+                            .onTapGesture { 
+                                selectedDistance = "0.5"
+                                fetchOffendersForCurrentSelection()
+                            }
+                    }
+                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Search Bar
+                    HStack {
+                        Text("🕵️‍♂️")
+                            .font(.system(size: 30))
+                        TextField(displaySearchText, text: $searchText)
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                            .accentColor(.white)
+                            .disabled(true)
+                    }
+                    .padding(.vertical, 15)
+                    .padding(.horizontal)
+                    .background(Color(hex: "282928"))
+                    .cornerRadius(200)
+                    .padding(.horizontal)
+                    .onTapGesture {
+                        showingSearchSheet = true
+                    }  // Move the tap gesture here
+                }
+                .padding(.bottom, 30)
+                
+                // Sheet presentation
+                if showingOffenderDetail {
+                    // Dark overlay
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showingOffenderDetail = false
                         }
-                        .onEnded { value in
-                            let threshold: CGFloat = 100
-                            if value.translation.height > threshold {
-                                showingOffenderDetail = false
-                            } else {
-                                dismissOffset = .zero
+                        .transition(.opacity)
+                        .animation(
+                            .easeInOut(duration: 0.5),  // Increased from 0.3 for smoother fade
+                            value: showingOffenderDetail
+                        )
+                    
+                    // Offender detail card
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Add drag indicator at the top
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.5))
+                            .frame(width: 40, height: 4)
+                            .cornerRadius(2)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 8)
+                        
+                        // Header with wolf and name
+                        HStack {
+                            Text("🐺")
+                                .font(.system(size: 40))
+                                .modifier(BreathingModifier())
+                            
+                            VStack(alignment: .leading) {
+                                Text(selectedOffender?.name ?? "Unknown")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundColor(.white)
+                                if let offenderLocation = selectedOffender?.coordinate,
+                                   let reference = referenceLocation {
+                                    Text(reference.formattedDistance(to: offenderLocation) + " away")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.red)
+                                } else {
+                                    Text("Distance unknown")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.red)
+                                }
                             }
                         }
-                )
-                .transition(.move(edge: .bottom))
-                .animation(
-                    .spring(
-                        response: 0.7,
-                        dampingFraction: 0.9,
-                        blendDuration: 0.5
-                    ),
-                    value: showingOffenderDetail
-                )
-            }
-        }
-        .preferredColorScheme(.dark)
-        .sheet(isPresented: $showingSearchSheet) {
-            SearchSheetView(
-                searchText: $searchText,
-                isPresented: $showingSearchSheet,
-                region: $region,
-                selectedLocation: $selectedSearchLocation,
-                offenderService: offenderService
-            )
-        }
-        .alert("Search Result", isPresented: .init(
-            get: { offenderService.errorMessage != nil },
-            set: { if !$0 { offenderService.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(offenderService.errorMessage ?? "")
-        }
-    }
-}
-
-struct DistanceMarker: View {
-    let distance: String
-    let isSelected: Bool
-    
-    var body: some View {
-        Text("\(distance) mi")
-            .foregroundColor(.white)
-            .font(.system(size: 18, weight: .medium))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                Capsule()
-                    .fill(Color(hex: "282928"))
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white, lineWidth: isSelected ? 1 : 0)
-                    )
-            )
-    }
-}
-
-#Preview {
-    ContentView()
-}
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
-// Add this struct for the swaying animation
-struct SwayingModifier: ViewModifier {
-    @State private var isSwaying = false
-    
-    func body(content: Content) -> some View {
-        content
-            .rotationEffect(.degrees(isSwaying ? 6 : -6), anchor: .bottom)
-            .animation(
-                Animation.easeInOut(duration: 1.5)
-                    .repeatForever(autoreverses: true),
-                value: isSwaying
-            )
-            .onAppear {
-                isSwaying = true
-            }
-    }
-}
-
-// Add this new modifier for the breathing/pulsing effect
-struct BreathingModifier: ViewModifier {
-    @State private var isBreathing = false
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isBreathing ? 1.1 : 0.9)
-            .animation(
-                Animation.easeInOut(duration: 1.0)
-                    .repeatForever(autoreverses: true),
-                value: isBreathing
-            )
-            .onAppear {
-                isBreathing = true
-            }
-    }
-}
-
-// Modify DroppingModifier to use the index
-struct DroppingModifier: ViewModifier {
-    @State private var hasDropped = false
-    let index: Int
-    
-    func body(content: Content) -> some View {
-        content
-            .offset(y: hasDropped ? 0 : -1000)
-            .opacity(hasDropped ? 1 : 0)
-            .animation(
-                Animation.spring(
-                    response: 0.6,
-                    dampingFraction: 0.6,
-                    blendDuration: 0
-                ),
-                value: hasDropped
-            )
-            .onAppear {
-                // Delay based on index (0.3s initial + 0.2s per marker)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(index) * 0.2) {
-                    hasDropped = true
+                        
+                        // Info grid
+                        HStack(spacing: 40) {
+                            VStack(alignment: .leading) {
+                                Text("Age:")
+                                    .foregroundColor(.gray)
+                                Text("\(selectedOffender?.age ?? 0)")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            VStack(alignment: .leading) {
+                                Text("Sex:")
+                                    .foregroundColor(.gray)
+                                Text(selectedOffender?.gender ?? "")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        // Address section
+                        VStack(alignment: .leading) {
+                            Text("Address:")
+                                .foregroundColor(.gray)
+                            Text(selectedOffender?.address ?? "")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                            Text(selectedOffender?.fullAddress ?? "")
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Spacer()
+                        
+                        // Update the button to open the offender URI
+                        if let offenderUri = selectedOffender?.offenderUri,
+                           let url = URL(string: offenderUri) {
+                            Link(destination: url) {
+                                Text("See Photo & Crimes")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
                 }
             }
-    }
-}
-
-// Add this new view for the "You" pill
-struct YouMarker: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("You")
-                .foregroundColor(.white)
-                .font(.system(size: 18, weight: .medium))
-                .modifier(BreathingModifier())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(Color(hex: "282928"))
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(Color.white, lineWidth: 1)
-                        )
-                )
+            .disabled(offenderService.isLoading)
             
-            // Triangle pointer with stroke
-            ZStack {
-                Image(systemName: "triangle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "282928"))
-                
-                Image(systemName: "triangle")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
+            if offenderService.isLoading {
+                LoadingOverlay()
             }
-            .offset(y: -5)
-            .rotationEffect(.degrees(180))
         }
     }
 }
-
-// Add this new modifier for the button pulse
-struct ButtonPulseModifier: ViewModifier {
-    @State private var isPulsing = false
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPulsing ? 1.05 : 1.0)  // Subtle scale change
-            .animation(
-                Animation.easeInOut(duration: 1.2)
-                    .repeatForever(autoreverses: true),
-                value: isPulsing
-            )
-            .onAppear {
-                isPulsing = true
-            }
-    }
-}
-
-// Add this struct near the bottom of the file
-struct SearchLocationMarker: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                Capsule()
-                    .fill(Color(hex: "282928"))
-                    .frame(width: 65, height: 55)
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white, lineWidth: 1.25)
-                    )
-                
-                Text("📍")
-                    .font(.system(size: 40))
-                    .offset(y: -1)
-                    .modifier(BreathingModifier())
-            }
-            
-            // Triangle pointer
-            ZStack {
-                Image(systemName: "triangle.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "282928"))
-                
-                Image(systemName: "triangle")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white)
-            }
-            .offset(y: -5)
-            .rotationEffect(.degrees(180))
-        }
-    }
-}
-
-extension CLLocationCoordinate2D {
-    func distance(to coordinate: CLLocationCoordinate2D) -> Double {
-        let earthRadius = 6371000.0 // Earth's radius in meters
-        
-        let lat1 = self.latitude * .pi / 180
-        let lat2 = coordinate.latitude * .pi / 180
-        let deltaLat = (coordinate.latitude - self.latitude) * .pi / 180
-        let deltaLon = (coordinate.longitude - self.longitude) * .pi / 180
-        
-        let a = sin(deltaLat/2) * sin(deltaLat/2) +
-                cos(lat1) * cos(lat2) *
-                sin(deltaLon/2) * sin(deltaLon/2)
-        let c = 2 * atan2(sqrt(a), sqrt(1-a))
-        
-        return earthRadius * c
-    }
-    
-    func formattedDistance(to coordinate: CLLocationCoordinate2D) -> String {
-        let distanceInMeters = distance(to: coordinate)
-        let miles = distanceInMeters / 1609.34
-        
-        if miles < 1.0 {
-            // Show two decimal places for distances less than 1 mile
-            return String(format: "%.2f mi", miles)
-        } else {
-            // Show one decimal place for distances 1 mile or greater
-            return String(format: "%.1f mi", miles)
-        }
-    }
-}
-
-

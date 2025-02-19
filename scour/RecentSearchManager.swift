@@ -37,20 +37,4 @@ class RecentSearchManager: ObservableObject {
     
     private func loadRecentSearches() {
         if let data = defaults.data(forKey: storageKey),
-           let decoded = try? JSONDecoder().decode([RecentSearch].self, from: data) {
-            recentSearches = decoded
-            print("Loaded \(recentSearches.count) recent searches")
-        } else {
-            print("No recent searches found or failed to decode")
-        }
-    }
-    
-    private func saveRecentSearches() {
-        if let encoded = try? JSONEncoder().encode(recentSearches) {
-            defaults.set(encoded, forKey: storageKey)
-            print("Saved \(recentSearches.count) recent searches")
-        } else {
-            print("Failed to encode recent searches")
-        }
-    }
-} 
+           let decoded = try? JSONDecoder().decode([RecentSearch].self, from: 
