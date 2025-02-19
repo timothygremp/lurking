@@ -40,6 +40,7 @@ struct SearchSheetView: View {
     @Binding var isPresented: Bool
     @Binding var region: MKCoordinateRegion
     @Binding var selectedLocation: SearchLocation?
+    let offenderService: OffenderService
     @FocusState private var isFocused: Bool
     
     @State private var offset: CGFloat = 0
@@ -66,22 +67,25 @@ struct SearchSheetView: View {
     // Move the selection logic to a separate function
     private func handleSelection(_ result: SearchResult) {
         searchCompleter.geocodeAddress(for: result) { coordinate in
-            if let coordinate = coordinate {
-                DispatchQueue.main.async {
-                    withAnimation {
-                        region = MKCoordinateRegion(
-                            center: coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                        )
-                        selectedLocation = SearchLocation(
-                            title: result.title,
-                            subtitle: result.subtitle,
-                            coordinate: coordinate
-                        )
-                        // Add to recent searches
-                        recentSearchManager.addSearch(title: result.title, subtitle: result.subtitle)
-                        isPresented = false
-                    }
+            if let location = coordinate {
+                withAnimation {
+                    region = MKCoordinateRegion(
+                        center: location,
+                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    )
+                    selectedLocation = SearchLocation(
+                        title: result.title,
+                        subtitle: result.subtitle,
+                        coordinate: location
+                    )
+                    
+                    // Add the API call here
+                    offenderService.fetchOffenders(
+                        location: location,
+                        distance: "0.5"  // 0.5 mile radius
+                    )
+                    
+                    isPresented = false
                 }
             }
         }
@@ -90,21 +94,25 @@ struct SearchSheetView: View {
     // Add this function to handle recent search selection
     private func handleRecentSelection(_ search: RecentSearch) {
         searchCompleter.geocodeAddress(forAddress: search.mainText + ", " + search.subText) { coordinate in
-            if let coordinate = coordinate {
-                DispatchQueue.main.async {
-                    withAnimation {
-                        region = MKCoordinateRegion(
-                            center: coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                        )
-                        selectedLocation = SearchLocation(
-                            title: search.mainText,
-                            subtitle: search.subText,
-                            coordinate: coordinate
-                        )
-                        searchText = search.mainText + ", " + search.subText
-                        isPresented = false
-                    }
+            if let location = coordinate {
+                withAnimation {
+                    region = MKCoordinateRegion(
+                        center: location,
+                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    )
+                    selectedLocation = SearchLocation(
+                        title: search.mainText,
+                        subtitle: search.subText,
+                        coordinate: location
+                    )
+                    
+                    // Add the API call here too
+                    offenderService.fetchOffenders(
+                        location: location,
+                        distance: "0.5"  // 0.5 mile radius
+                    )
+                    
+                    isPresented = false
                 }
             }
         }

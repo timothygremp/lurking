@@ -91,6 +91,15 @@ struct ContentView: View {
     // Add state for selected search location
     @State private var selectedSearchLocation: SearchLocation?
     
+    // Add a computed property to get the reference location for distance calculations
+    private var referenceLocation: CLLocationCoordinate2D? {
+        // If there's a search location, use that, otherwise use user location
+        if let searchLocation = selectedSearchLocation {
+            return searchLocation.coordinate
+        }
+        return userLocation
+    }
+    
     // Update the computed property to use 'any AnnotationItem'
     private var allAnnotations: [Offender] {
         var items = offenders
@@ -357,8 +366,8 @@ struct ContentView: View {
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.white)
                             if let offenderLocation = selectedOffender?.coordinate,
-                               let userLoc = userLocation {
-                                Text(userLoc.formattedDistance(to: offenderLocation) + " away")
+                               let reference = referenceLocation {
+                                Text(reference.formattedDistance(to: offenderLocation) + " away")
                                     .font(.system(size: 20))
                                     .foregroundColor(.red)
                             } else {
@@ -453,7 +462,8 @@ struct ContentView: View {
                 searchText: $searchText,
                 isPresented: $showingSearchSheet,
                 region: $region,
-                selectedLocation: $selectedSearchLocation
+                selectedLocation: $selectedSearchLocation,
+                offenderService: offenderService
             )
         }
         .alert("Search Result", isPresented: .init(
