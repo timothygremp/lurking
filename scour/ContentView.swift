@@ -280,12 +280,25 @@ struct ContentView: View {
                     .onTapGesture {
                         if let location = locationManager.location {
                             withAnimation {
+                                // Reset region to user location
                                 region = MKCoordinateRegion(
                                     center: location.coordinate,
                                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                                 )
-                                userLocation = location.coordinate
+                                // Reset tracking
                                 isTrackingLocation = true
+                                userLocation = location.coordinate
+                                
+                                // Clear search location and text
+                                selectedSearchLocation = nil
+                                searchText = ""
+                                
+                                // Reset to default radius and fetch offenders
+                                selectedDistance = "0.5"
+                                offenderService.fetchOffenders(
+                                    location: location.coordinate,
+                                    distance: "0.5"
+                                )
                             }
                         }
                     }
