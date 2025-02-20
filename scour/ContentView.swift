@@ -64,6 +64,7 @@ struct ContentView: View {
     )
     
     @StateObject private var offenderService = OffenderService()
+    @StateObject private var subscriptionService = SubscriptionService.shared
     
     // Update offenders to use the service's data
     var offenders: [Offender] {
@@ -186,6 +187,9 @@ struct ContentView: View {
         }
         return true
     }
+    
+    // Add this with other @State variables
+    @State private var showingPaywall = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -479,7 +483,16 @@ struct ContentView: View {
                     // Update the button to open the offender URI
                     if let offenderUri = selectedOffender?.offenderUri,
                        let url = URL(string: offenderUri) {
-                        Link(destination: url) {
+                        Button(action: {
+                            Task {
+                                await subscriptionService.updateSubscriptionStatus()
+                                if subscriptionService.checkSubscription() {
+                                    await UIApplication.shared.open(url)
+                                } else {
+                                    showingPaywall = true
+                                }
+                            }
+                        }) {
                             Text("See Photo & Crimes")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.white)
@@ -566,6 +579,9 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("The state of \(unsupportedStateName) currently does not support location based search")
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
         }
     }
 }
