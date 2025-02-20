@@ -554,7 +554,7 @@ struct ContentView: View {
                 offenderService: offenderService
             )
         }
-        .alert("Search Result", isPresented: .init(
+        .alert("Too Many Results", isPresented: .init(
             get: { offenderService.errorMessage != nil },
             set: { if !$0 { offenderService.errorMessage = nil } }
         )) {

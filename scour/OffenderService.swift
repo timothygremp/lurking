@@ -141,6 +141,16 @@ class OffenderService: ObservableObject {
                 return
             }
             
+            // Check for the specific error message
+            if let responseString = String(data: data, encoding: .utf8),
+               responseString.contains("ERROR-511") {
+                DispatchQueue.main.async {
+                    self?.errorMessage = "Too many offenders were found. Please narrow search radius."
+                    self?.isLoading = false
+                }
+                return
+            }
+            
             // Print response data
             if let responseString = String(data: data, encoding: .utf8) {
                 print("Response Data: \(responseString)")
