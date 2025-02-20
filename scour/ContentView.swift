@@ -796,24 +796,4 @@ extension CLLocationCoordinate2D {
         let deltaLat = (coordinate.latitude - self.latitude) * .pi / 180
         let deltaLon = (coordinate.longitude - self.longitude) * .pi / 180
         
-        let a = sin(deltaLat/2) * sin(deltaLat/2) +
-                cos(lat1) * cos(lat2) *
-                sin(deltaLon/2) * sin(deltaLon/2)
-        let c = 2 * atan2(sqrt(a), sqrt(1-a))
-        
-        return earthRadius * c
-    }
-    
-    func formattedDistance(to coordinate: CLLocationCoordinate2D) -> String {
-        let distanceInMeters = distance(to: coordinate)
-        let miles = distanceInMeters / 1609.34
-        
-        if miles < 1.0 {
-            // Show two decimal places for distances less than 1 mile
-            return String(format: "%.2f mi", miles)
-        } else {
-            // Show one decimal place for distances 1 mile or greater
-            return String(format: "%.1f mi", miles)
-        }
-    }
-}
+        let a = sin(del
