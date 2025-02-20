@@ -164,6 +164,9 @@ struct SearchSheetView: View {
                         zip: zip
                     )
                     
+                    // Update the searchText to show the full address
+                    searchText = result.title + ", " + result.subtitle
+                    
                     offenderService.fetchOffenders(
                         location: location,
                         distance: "0.5",
@@ -292,12 +295,17 @@ struct SearchSheetView: View {
         .gesture(
             DragGesture()
                 .onChanged { gesture in
-                    let translation = gesture.translation.height
-                    offset = translation > 0 ? translation : 0
+                    // Disable drag when text field is focused
+                    if !isFocused {
+                        let translation = gesture.translation.height
+                        offset = translation > 0 ? translation : 0
+                    }
                 }
                 .onEnded { gesture in
-                    if gesture.translation.height > dismissThreshold {
-                        isPresented = false
+                    if !isFocused && gesture.translation.height > dismissThreshold {
+                        withAnimation(.spring()) {
+                            isPresented = false
+                        }
                     } else {
                         withAnimation(.spring()) {
                             offset = 0
