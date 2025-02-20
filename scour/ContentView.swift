@@ -139,12 +139,26 @@ struct ContentView: View {
                 state: state,
                 zip: zip
             )
-        } else if let location = locationManager.location {
-            // Use current location with default state/zip
-            offenderService.fetchOffenders(
-                location: location.coordinate,
-                distance: selectedDistance
-            )
+        } else if let location = locationManager.location {  // Change back to actual location
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(location) { placemarks, error in
+                if let state = placemarks?.first?.administrativeArea {
+                    // Check if state is unsupported
+                    if let fullStateName = self.unsupportedStates[state] {
+                        DispatchQueue.main.async {
+                            self.unsupportedStateName = fullStateName
+                            self.showingUnsupportedStateAlert = true
+                        }
+                        return
+                    }
+                    
+                    // State is supported, proceed with API call
+                    self.offenderService.fetchOffenders(
+                        location: location.coordinate,
+                        distance: self.selectedDistance
+                    )
+                }
+            }
         }
     }
     
@@ -548,10 +562,10 @@ struct ContentView: View {
         } message: {
             Text(offenderService.errorMessage ?? "")
         }
-        .alert(unsupportedStateName, isPresented: $showingUnsupportedStateAlert) {
+        .alert("Unable to Search", isPresented: $showingUnsupportedStateAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("currently does not support location based search")
+            Text("The state of \(unsupportedStateName) currently does not support location based search")
         }
     }
 }
