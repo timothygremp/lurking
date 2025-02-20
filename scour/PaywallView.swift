@@ -101,13 +101,28 @@ struct PaywallView: View {
                 
                 HStack(spacing: 30) {
                     Button("Restore Purchases") {
-                        // Handle restore
+                        Task {
+                            isLoading = true
+                            do {
+                                try await subscriptionService.restorePurchases()
+                                isLoading = false
+                                dismiss()
+                            } catch {
+                                isLoading = false
+                                errorMessage = "No active subscription found"
+                                showError = true
+                            }
+                        }
                     }
                     Button("Privacy Policy") {
-                        // Handle privacy
+                        if let url = URL(string: "https://lurking.webflow.io/") {
+                            UIApplication.shared.open(url)
+                        }
                     }
                     Button("Terms of Use") {
-                        // Handle terms
+                        if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+                            UIApplication.shared.open(url)
+                        }
                     }
                 }
                 .font(.system(size: 13))
