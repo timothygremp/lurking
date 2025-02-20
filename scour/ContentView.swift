@@ -148,6 +148,31 @@ struct ContentView: View {
         }
     }
     
+    @State private var showingUnsupportedStateAlert = false
+    @State private var unsupportedStateName = ""
+    
+    private let unsupportedStates = [
+        "AR": "Arkansas",
+        "DE": "Delaware", 
+        "IL": "Illinois",
+        "MN": "Minnesota",
+        "NH": "New Hampshire",
+        "NY": "New York",
+        "OR": "Oregon",
+        "TX": "Texas",
+        "VT": "Vermont",
+        "WV": "West Virginia"
+    ]
+    
+    private func checkStateSupport(state: String) -> Bool {
+        if let fullStateName = unsupportedStates[state] {
+            unsupportedStateName = fullStateName
+            showingUnsupportedStateAlert = true
+            return false
+        }
+        return true
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
@@ -495,6 +520,7 @@ struct ContentView: View {
                             .modifier(BreathingModifier())
                         
                         Text("Searching...")
+                            .font(.system(size: 24))
                             .foregroundColor(.white)
                     }
                     .padding(40)
@@ -521,6 +547,11 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(offenderService.errorMessage ?? "")
+        }
+        .alert(unsupportedStateName, isPresented: $showingUnsupportedStateAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("currently does not support location based search")
         }
     }
 }

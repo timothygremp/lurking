@@ -65,53 +65,21 @@ struct SearchSheetView: View {
     private var resultsList: some View {
         ForEach(searchCompleter.results) { result in
             SearchResultRow(result: result) {
+                print("1. List item tapped: \(result.title), \(result.subtitle)")  // Debug print
                 handleSelection(result)
-            }
-        }
-    }
-    
-    // Move the selection logic to a separate function
-    private func handleSelection(_ result: SearchResult) {
-        searchCompleter.geocodeAddress(for: result) { coordinate, addressComponents in
-            if let location = coordinate,
-               let state = addressComponents?.state,
-               let zip = addressComponents?.postalCode {
-                withAnimation {
-                    region = MKCoordinateRegion(
-                        center: location,
-                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-                    )
-                    selectedLocation = SearchLocation(
-                        title: result.title,
-                        subtitle: result.subtitle,
-                        coordinate: location,
-                        state: state,
-                        zip: zip
-                    )
-                    
-                    // Add the API call here with the correct state and zip
-                    offenderService.fetchOffenders(
-                        location: location,
-                        distance: "0.5",
-                        state: state,
-                        zip: zip
-                    )
-                    
-                    // Add to recent searches with state and zip
-                    recentSearchManager.addSearch(
-                        title: result.title,
-                        subtitle: result.subtitle,
-                        state: state,
-                        zip: zip
-                    )
-                    isPresented = false
-                }
             }
         }
     }
     
     // Add this function to handle recent search selection
     private func handleRecentSelection(_ search: RecentSearch) {
+        // Check if state is unsupported first
+        if let fullStateName = unsupportedStates[search.state] {
+            unsupportedStateName = fullStateName
+            showingUnsupportedStateAlert = true
+            return
+        }
+        
         searchCompleter.geocodeAddress(forAddress: search.mainText + ", " + search.subText) { coordinate in
             if let location = coordinate {
                 withAnimation {
@@ -135,6 +103,80 @@ struct SearchSheetView: View {
                         zip: search.zip
                     )
                     
+                    isPresented = false
+                }
+            }
+        }
+    }
+    
+    private let unsupportedStates = [
+        "AR": "Arkansas",
+        "DE": "Delaware", 
+        "IL": "Illinois",
+        "MN": "Minnesota",
+        "NH": "New Hampshire",
+        "NY": "New York",
+        "OR": "Oregon",
+        "TX": "Texas",
+        "VT": "Vermont",
+        "WV": "West Virginia"
+    ]
+    
+    @State private var showingUnsupportedStateAlert = false
+    @State private var unsupportedStateName = ""
+    
+    // Update the selection logic
+    private func handleSelection(_ result: SearchResult) {
+        print("2. handleSelection called")  // Debug print
+        searchCompleter.geocodeAddress(for: result) { coordinate, addressComponents in
+            print("3. geocodeAddress completion called")  // Debug print
+            guard let state = addressComponents?.state else { 
+                print("No state found")  // Debug print
+                return 
+            }
+            
+            print("4. State found: \(state)")  // Debug print
+            
+            // Check if state is unsupported first
+            if let fullStateName = unsupportedStates[state] {
+                print("5. Unsupported state found: \(fullStateName)")  // Debug print
+                DispatchQueue.main.async {
+                    unsupportedStateName = fullStateName
+                    showingUnsupportedStateAlert = true
+                }
+                return
+            }
+            
+            print("6. State is supported, continuing with selection")  // Debug print
+            // Only proceed if we have all required data and state is supported
+            if let location = coordinate,
+               let zip = addressComponents?.postalCode {
+                withAnimation {
+                    region = MKCoordinateRegion(
+                        center: location,
+                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                    )
+                    selectedLocation = SearchLocation(
+                        title: result.title,
+                        subtitle: result.subtitle,
+                        coordinate: location,
+                        state: state,
+                        zip: zip
+                    )
+                    
+                    offenderService.fetchOffenders(
+                        location: location,
+                        distance: "0.5",
+                        state: state,
+                        zip: zip
+                    )
+                    
+                    recentSearchManager.addSearch(
+                        title: result.title,
+                        subtitle: result.subtitle,
+                        state: state,
+                        zip: zip
+                    )
                     isPresented = false
                 }
             }
@@ -266,6 +308,11 @@ struct SearchSheetView: View {
         .onAppear {
             isFocused = true
         }
+        .alert("Unable to Search", isPresented: $showingUnsupportedStateAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The state of \(unsupportedStateName) currently does not support location based search")
+        }
     }
 }
 
@@ -395,13 +442,16 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
         let searchRequest = MKLocalSearch.Request()
         searchRequest.naturalLanguageQuery = result.title + ", " + result.subtitle
         
+        print("Searching for address: \(result.title + ", " + result.subtitle)")  // Debug print
+        
         let search = MKLocalSearch(request: searchRequest)
         search.start { response, error in
             if let placemark = response?.mapItems.first?.placemark {
-                // Extract state and zip from placemark
-                print("Placemark state: \(placemark.administrativeArea ?? "nil")")
-                print("Placemark zip: \(placemark.postalCode ?? "nil")")
-                print("Full placemark: \(placemark)")
+                // Debug prints
+                print("Found placemark:")
+                print("State: \(placemark.administrativeArea ?? "nil")")
+                print("State abbreviation: \(placemark.administrativeArea?.uppercased() ?? "nil")")
+                print("Zip: \(placemark.postalCode ?? "nil")")
                 
                 let state = placemark.administrativeArea?.uppercased() ?? "ID"
                 let zip = placemark.postalCode ?? "83702"
@@ -412,6 +462,7 @@ extension SearchCompleter: MKLocalSearchCompleterDelegate {
                 )
                 completion(placemark.coordinate, components)
             } else {
+                print("No placemark found or error: \(error?.localizedDescription ?? "unknown error")")  // Debug print
                 completion(nil, nil)
             }
         }
