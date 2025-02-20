@@ -73,6 +73,8 @@ struct PaywallView: View {
                                 try await subscriptionService.purchase(product)
                                 isLoading = false
                                 dismiss()
+                            } catch SubscriptionService.SubscriptionError.userCancelled {
+                                isLoading = false
                             } catch {
                                 isLoading = false
                                 errorMessage = error.localizedDescription
@@ -80,20 +82,15 @@ struct PaywallView: View {
                             }
                         }
                     }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Text(product.subscription?.subscriptionPeriod.unit == .year ? 
-                                 "Yearly \(product.displayPrice)" : 
-                                 "Monthly \(product.displayPrice)")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color.red)
-                                .cornerRadius(30)
-                        }
+                        Text(product.subscription?.subscriptionPeriod.unit == .year ? 
+                             "Yearly \(product.displayPrice)" : 
+                             "Monthly \(product.displayPrice)")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.red)
+                            .cornerRadius(30)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)
@@ -120,6 +117,29 @@ struct PaywallView: View {
                 .offset(y: -40)
             }
             .padding(.top)
+            
+            // Add loading overlay
+            if isLoading {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                    .allowsHitTesting(true)
+                
+                GeometryReader { geometry in
+                    VStack {
+                        Text("🐺")
+                            .font(.system(size: 100))
+                            .modifier(BreathingModifier())
+                        
+                        Text("Loading...")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                    }
+                    .padding(40)
+                    .background(Color(hex: "282928"))
+                    .cornerRadius(20)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
