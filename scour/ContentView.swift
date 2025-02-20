@@ -291,7 +291,7 @@ struct ContentView: View {
                         Text("🐺")
                             .font(.system(size: 30))
                             .modifier(BreathingModifier())  // Add breathing animation
-                        Text("Scour")
+                        Text("Lurking")
                             .foregroundColor(.white)
                             .font(.system(size: 28, weight: .medium))
                     }
