@@ -2,18 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Scour needs your location to show nearby results</string>
+	<string>Lurking needs your location to search for sex offenders near you</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Scour needs your location to show nearby results</string>
+	<string>Lurking needs your location to search for sex offenders near you</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>LocationAccuracyUsageDescription</key>
-		<string>Scour needs your precise location to show accurate results</string>
+		<string>Lurking needs your location to search for sex offenders near you</string>
 	</dict>
 </dict>
 </plist>

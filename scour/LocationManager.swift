@@ -22,8 +22,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Add these lines to reduce update frequency
         locationManager.distanceFilter = 10  // Only update if moved more than 10 meters
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
         
         // Request authorization if not determined
         if authorizationStatus == .notDetermined {
