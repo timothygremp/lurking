@@ -65,7 +65,7 @@ struct PaywallView: View {
                 .padding(.bottom, 16)
                 .offset(y: -100)
                 
-                ForEach(subscriptionService.products, id: \.id) { product in
+                if let product = subscriptionService.products.first {
                     Button(action: {
                         Task {
                             isLoading = true
@@ -82,9 +82,7 @@ struct PaywallView: View {
                             }
                         }
                     }) {
-                        Text(product.subscription?.subscriptionPeriod.unit == .year ? 
-                             "Yearly \(product.displayPrice)" : 
-                             "Monthly \(product.displayPrice)")
+                        Text("Unlock Full Access - \(product.displayPrice)")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -94,8 +92,8 @@ struct PaywallView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)
+                    .offset(y: -100)
                 }
-                .offset(y: -100)
                 
                 Spacer()
                 

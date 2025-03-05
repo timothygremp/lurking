@@ -9,52 +9,20 @@ class SubscriptionService: ObservableObject {
     
     static let shared = SubscriptionService()
     private var updateListenerTask: Task<Void, Error>?
-    private var backgroundObserver: Any?
-    private var periodicCheckTask: Task<Void, Never>?
     
-    private let productIDs = [
-        "mm_499_1m",  // Replace with your actual monthly product ID
-        "mm_2999_1yr"    // Replace with your actual yearly product ID
-    ]
+    private let productID = "lurk_199"  // Changed to single product ID
     
     private init() {
-        setupBackgroundCheck()
-        setupPeriodicCheck()
         updateListenerTask = listenForTransactions()
         
         Task {
             await loadProducts()
-            await updateSubscriptionStatus()
+            await updatePurchaseStatus()
         }
     }
     
     deinit {
-        if let observer = backgroundObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
         updateListenerTask?.cancel()
-        periodicCheckTask?.cancel()
-    }
-    
-    private func setupBackgroundCheck() {
-        backgroundObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.willEnterForegroundNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task {
-                await self?.updateSubscriptionStatus()
-            }
-        }
-    }
-    
-    private func setupPeriodicCheck() {
-        periodicCheckTask = Task {
-            while !Task.isCancelled {
-                await updateSubscriptionStatus()
-                try? await Task.sleep(nanoseconds: 3600 * 1_000_000_000) // 1 hour
-            }
-        }
     }
     
     private func listenForTransactions() -> Task<Void, Error> {
@@ -68,8 +36,8 @@ class SubscriptionService: ObservableObject {
     private func handle(updatedTransaction result: VerificationResult<Transaction>) async {
         switch result {
         case .verified(let transaction):
-            if self.productIDs.contains(transaction.productID) {
-                await self.updateSubscriptionStatus()
+            if transaction.productID == productID {
+                await self.updatePurchaseStatus()
             }
             await transaction.finish()
         case .unverified:
@@ -79,9 +47,8 @@ class SubscriptionService: ObservableObject {
     
     func loadProducts() async {
         do {
-            let products = try await Product.products(for: productIDs)
-            // Sort products by price (monthly first)
-            self.products = products.sorted { $0.price < $1.price }
+            let products = try await Product.products(for: [productID])
+            self.products = products
         } catch {
             print("Failed to load products: \(error)")
         }
@@ -93,12 +60,10 @@ class SubscriptionService: ObservableObject {
             
             switch result {
             case .success(let verification):
-                // Check if the transaction is verified
                 switch verification {
                 case .verified(let transaction):
-                    // Update the user's subscription status
                     await transaction.finish()
-                    await updateSubscriptionStatus()
+                    await updatePurchaseStatus()
                 case .unverified:
                     throw SubscriptionError.verificationFailed
                 }
@@ -114,44 +79,29 @@ class SubscriptionService: ObservableObject {
         }
     }
     
-    func updateSubscriptionStatus() async {
-        print("Checking subscription status...")
-        var foundValidSubscription = false
+    func updatePurchaseStatus() async {
+        print("Checking purchase status...")
         
         for await result in Transaction.currentEntitlements {
             switch result {
             case .verified(let transaction):
-                print("Found transaction: \(transaction.productID)")
-                print("Transaction status - isUpgraded: \(transaction.isUpgraded)")
-                print("Transaction expiration date: \(transaction.expirationDate ?? Date())")
-                
-                if productIDs.contains(transaction.productID) && 
-                   !transaction.isUpgraded {
-                    if let expirationDate = transaction.expirationDate,
-                       expirationDate > Date() {
-                        print("Found valid subscription that expires: \(expirationDate)")
-                        foundValidSubscription = true
-                        DispatchQueue.main.async {
-                            self.isSubscribed = true
-                            UserDefaults.standard.set(true, forKey: "isSubscribed")
-                        }
-                        return
-                    } else {
-                        print("Found expired subscription")
+                if transaction.productID == productID {
+                    print("Found valid purchase")
+                    DispatchQueue.main.async {
+                        self.isSubscribed = true
+                        UserDefaults.standard.set(true, forKey: "isSubscribed")
                     }
+                    return
                 }
-            case .unverified(let transaction, let error):
-                print("Unverified transaction: \(error.localizedDescription)")
+            case .unverified:
                 continue
             }
         }
         
-        if !foundValidSubscription {
-            print("No valid subscription found")
-            DispatchQueue.main.async {
-                self.isSubscribed = false
-                UserDefaults.standard.set(false, forKey: "isSubscribed")
-            }
+        print("No valid purchase found")
+        DispatchQueue.main.async {
+            self.isSubscribed = false
+            UserDefaults.standard.set(false, forKey: "isSubscribed")
         }
     }
     
@@ -160,26 +110,18 @@ class SubscriptionService: ObservableObject {
     }
     
     func restorePurchases() async throws {
-        // Check restored transactions
         for await result in Transaction.currentEntitlements {
             switch result {
             case .verified(let transaction):
-                print("Restored transaction: \(transaction.productID)")
-                // If we find a valid subscription, update status and return
-                if productIDs.contains(transaction.productID) && 
-                   !transaction.isUpgraded {
-                    if let expirationDate = transaction.expirationDate,
-                       expirationDate > Date() {
-                        print("Found valid restored subscription that expires: \(expirationDate)")
-                        DispatchQueue.main.async {
-                            self.isSubscribed = true
-                            UserDefaults.standard.set(true, forKey: "isSubscribed")
-                        }
-                        return
+                if transaction.productID == productID {
+                    print("Found valid restored purchase")
+                    DispatchQueue.main.async {
+                        self.isSubscribed = true
+                        UserDefaults.standard.set(true, forKey: "isSubscribed")
                     }
+                    return
                 }
-            case .unverified(_, let error):
-                print("Unverified transaction during restore: \(error.localizedDescription)")
+            case .unverified:
                 throw SubscriptionError.verificationFailed
             }
         }

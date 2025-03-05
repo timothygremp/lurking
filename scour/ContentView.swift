@@ -191,6 +191,9 @@ struct ContentView: View {
     // Add this with other @State variables
     @State private var showingPaywall = false
     
+    // Add this near your other @State variables at the top
+    @State private var showingErrorAlert = false
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Map with only offender markers
@@ -567,11 +570,10 @@ struct ContentView: View {
                 offenderService: offenderService
             )
         }
-        .alert("Too Many Results", isPresented: .init(
-            get: { offenderService.errorMessage != nil },
-            set: { if !$0 { offenderService.errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK", role: .cancel) {
+                offenderService.errorMessage = nil
+            }
         } message: {
             Text(offenderService.errorMessage ?? "")
         }
