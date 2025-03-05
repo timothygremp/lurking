@@ -17,7 +17,7 @@ struct PaywallView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(height: 300)
-                    .offset(y: 20)
+                    .offset(y: 30)
                 
                 VStack(spacing: 0) {
                     HStack(spacing: 4) {
@@ -33,7 +33,7 @@ struct PaywallView: View {
                         .foregroundColor(.white)
                 }
                 .multilineTextAlignment(.center)
-                .offset(y: -25)
+                .offset(y: -95)
                 .padding(.bottom, 10)
                 
                 VStack(alignment: .leading, spacing: 16) {
@@ -63,7 +63,7 @@ struct PaywallView: View {
                 .cornerRadius(16)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
-                .offset(y: -30)
+                .offset(y: -100)
                 
                 ForEach(subscriptionService.products, id: \.id) { product in
                     Button(action: {
@@ -95,7 +95,7 @@ struct PaywallView: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)
                 }
-                .offset(y: -30)
+                .offset(y: -100)
                 
                 Spacer()
                 
@@ -115,7 +115,7 @@ struct PaywallView: View {
                         }
                     }
                     Button("Privacy Policy") {
-                        if let url = URL(string: "https://lurking.webflow.io/") {
+                        if let url = URL(string: "https://lurking.webflow.io/privacy") {
                             UIApplication.shared.open(url)
                         }
                     }
@@ -129,7 +129,7 @@ struct PaywallView: View {
                 .foregroundColor(.gray)
                 .padding(.top, 10)
                 .padding(.bottom, 20)
-                .offset(y: -40)
+                .offset(y: -110)
             }
             .padding(.top)
             
