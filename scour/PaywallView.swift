@@ -3,7 +3,7 @@ import StoreKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var subscriptionService = SubscriptionService.shared
+    @StateObject private var purchaseService = PurchaseService.shared
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
@@ -65,36 +65,38 @@ struct PaywallView: View {
                 .padding(.bottom, 16)
                 .offset(y: -100)
                 
-                ForEach(subscriptionService.products, id: \.id) { product in
-                    Button(action: {
-                        Task {
-                            isLoading = true
-                            do {
-                                try await subscriptionService.purchase(product)
+                Button(action: {
+                    Task {
+                        isLoading = true
+                        do {
+                            try await purchaseService.purchase()
+                            if await purchaseService.checkPurchaseStatus() {
                                 isLoading = false
                                 dismiss()
-                            } catch SubscriptionService.SubscriptionError.userCancelled {
+                            } else {
                                 isLoading = false
-                            } catch {
-                                isLoading = false
-                                errorMessage = error.localizedDescription
+                                errorMessage = "Purchase verification failed. Please try restoring purchases."
                                 showError = true
                             }
+                        } catch PurchaseError.userCancelled {
+                            isLoading = false
+                        } catch {
+                            isLoading = false
+                            errorMessage = error.localizedDescription
+                            showError = true
                         }
-                    }) {
-                        Text(product.subscription?.subscriptionPeriod.unit == .year ? 
-                             "Yearly \(product.displayPrice)" : 
-                             "Monthly \(product.displayPrice)")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.red)
-                            .cornerRadius(30)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 12)
+                }) {
+                    Text("Stay Safe For Life - $1.99")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.red)
+                        .cornerRadius(30)
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 12)
                 .offset(y: -100)
                 
                 Spacer()
@@ -103,13 +105,12 @@ struct PaywallView: View {
                     Button("Restore Purchases") {
                         Task {
                             isLoading = true
-                            do {
-                                try await subscriptionService.restorePurchases()
+                            if await purchaseService.checkPurchaseStatus() {
                                 isLoading = false
                                 dismiss()
-                            } catch {
+                            } else {
                                 isLoading = false
-                                errorMessage = "No active subscription found"
+                                errorMessage = "No purchase found"
                                 showError = true
                             }
                         }
@@ -160,9 +161,6 @@ struct PaywallView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
-        }
-        .task {
-            await subscriptionService.loadProducts()
         }
     }
 }

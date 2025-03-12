@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import StoreKit
 
 // Update the existing Offender struct
 struct Offender: Identifiable {
@@ -64,7 +65,7 @@ struct ContentView: View {
     )
     
     @StateObject private var offenderService = OffenderService()
-    @StateObject private var subscriptionService = SubscriptionService.shared
+    @StateObject private var purchaseService = PurchaseService.shared
     
     // Update offenders to use the service's data
     var offenders: [Offender] {
@@ -485,8 +486,7 @@ struct ContentView: View {
                        let url = URL(string: offenderUri) {
                         Button(action: {
                             Task {
-                                await subscriptionService.updateSubscriptionStatus()
-                                if subscriptionService.checkSubscription() {
+                                if await purchaseService.checkPurchaseStatus() {
                                     await UIApplication.shared.open(url)
                                 } else {
                                     showingPaywall = true
@@ -567,7 +567,7 @@ struct ContentView: View {
                 offenderService: offenderService
             )
         }
-        .alert("Too Many Results", isPresented: .init(
+        .alert("Error", isPresented: .init(
             get: { offenderService.errorMessage != nil },
             set: { if !$0 { offenderService.errorMessage = nil } }
         )) {
@@ -817,3 +817,97 @@ extension CLLocationCoordinate2D {
         }
     }
 }
+
+@MainActor
+class PurchaseService: ObservableObject {
+    static let shared = PurchaseService()
+    private let productId = "lurk_199"
+    
+    @Published private(set) var hasPurchased = false
+    
+    private init() {
+        // Start listening for transactions when the app launches
+        Task {
+            await checkPurchaseStatus()
+            await updatePurchaseStatus()
+        }
+    }
+    
+    func checkPurchaseStatus() async -> Bool {
+        // First check for any existing entitlements
+        for await result in Transaction.currentEntitlements {
+            if case .verified(let transaction) = result {
+                if transaction.productID == productId {
+                    hasPurchased = true
+                    return true
+                }
+            }
+        }
+        
+        // Then check all transactions as fallback
+        for await result in Transaction.all {
+            if case .verified(let transaction) = result {
+                if transaction.productID == productId {
+                    hasPurchased = true
+                    return true
+                }
+            }
+        }
+        
+        hasPurchased = false
+        return false
+    }
+    
+    func updatePurchaseStatus() async {
+        // Listen for transactions real-time
+        for await result in Transaction.updates {
+            if case .verified(let transaction) = result {
+                if transaction.productID == productId {
+                    hasPurchased = true
+                    // Complete the transaction
+                    await transaction.finish()
+                }
+            }
+        }
+    }
+    
+    func purchase() async throws {
+        // Request the product
+        guard let product = try? await Product.products(for: [productId]).first else {
+            throw PurchaseError.productNotFound
+        }
+        
+        // Purchase the product
+        let result = try await product.purchase()
+        
+        switch result {
+        case .success(let verification):
+            if case .verified(let transaction) = verification {
+                // Handle successful purchase
+                await transaction.finish()
+                hasPurchased = true
+                // Start listening for updates
+                Task {
+                    await updatePurchaseStatus()
+                }
+            } else {
+                throw PurchaseError.purchaseFailed
+            }
+        case .userCancelled:
+            throw PurchaseError.userCancelled
+        case .pending:
+            throw PurchaseError.pending
+        @unknown default:
+            throw PurchaseError.unknown
+        }
+    }
+}
+
+enum PurchaseError: Error {
+    case productNotFound
+    case purchaseFailed
+    case userCancelled
+    case pending
+    case unknown
+}
+
