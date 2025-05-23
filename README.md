@@ -8,39 +8,46 @@ Lurking helps users visualize public safety data from the U.S. National Offender
 
 ---
 
+## 🖼️ Screenshots
+
+### 🔍 Address Search Feature  
+![Search Screen](screenshots/search.png)
+
+---
+
 ## 🔍 Features
 
-- 🗺️ **Live Map View** – Automatically shows registered offenders near your current location
-- 📬 **Address Search** – Look up any U.S. address to search by location
-- 🧃 **Gen-Z UI Style** – Playful, swipe-friendly SwiftUI interface built for modern iPhone users
-- 🔌 **Custom Node.js API** – Efficiently pulls and caches data from the U.S. National Offender Registry
+- 🗺️ **Live Map View** – Automatically shows registered offenders near your current location  
+- 📬 **Address Search** – Look up any U.S. address to search by location  
+- 🧃 **Gen-Z UI Style** – Playful, swipe-friendly SwiftUI interface built for modern iPhone users  
+- 🔌 **Custom Node.js API** – Efficiently pulls and caches data from the U.S. National Offender Registry  
 
 ---
 
 ## 🧰 Tech Stack
 
-- `SwiftUI` – iOS front end
-- `Node.js + Express` – Backend API server
-- `MapKit` – Real-time pin rendering
-- `Geocoding APIs` – Converts addresses and GPS into location-based queries
+- `SwiftUI` – iOS front end  
+- `Node.js + Express` – Backend API server  
+- `MapKit` – Real-time pin rendering  
+- `Geocoding APIs` – Converts addresses and GPS into location-based queries  
 
 ---
 
 ## ⚙️ How It Works
 
-- User location is requested and used to query the backend API
-- The API fetches and filters offender data within a defined radius
-- Pins are rendered on the map with relevant info on tap
-- Search input triggers a similar process based on address instead of GPS
+- User location is requested and used to query the backend API  
+- The API fetches and filters offender data within a defined radius  
+- Pins are rendered on the map with relevant info on tap  
+- Search input triggers a similar process based on address instead of GPS  
 
 ---
 
 ## 💡 Why I Built This
 
-I wanted to explore:
-- Government data + geospatial processing
-- Building a map-first UX in SwiftUI
-- Projects with real-world relevance that push product boundaries
+I wanted to explore:  
+- Government data + geospatial processing  
+- Building a map-first UX in SwiftUI  
+- Projects with real-world relevance that push product boundaries  
 
 As a solo developer, I enjoy taking projects from idea to shipped App Store product. Lurking is one of 5+ iOS apps I’ve built and launched independently.
 
@@ -56,7 +63,7 @@ This app uses publicly available data from the U.S. National Offender Registry. 
 
 I'm **Tim Gremp** — a product-focused iOS dev and former CPA. I love building tools that solve real problems. Whether it’s mobile UX, backend APIs, or full-stack MVPs, I’m focused on shipping fast, clear, and useful products.
 
-- [🔗 LinkedIn](https://www.linkedin.com/in/tim-gremp-26bb2090/)
+- [🔗 LinkedIn](https://www.linkedin.com/in/tim-gremp-26bb2090/)  
 - [📱 Lurking on the App Store](https://apps.apple.com/us/app/lurking/id6742218032)
 
 ---
